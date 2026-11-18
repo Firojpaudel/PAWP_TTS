@@ -1,0 +1,130 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pawp-tts"
+version = "0.1.0"
+description = "Phoneme-Aware Weight Programming for Ultra-Compact Bilingual (English-Nepali) Speech Synthesis"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "numpy>=1.26,<3.0",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "python-dotenv>=1.0",
+    "soundfile>=0.12",
+    "safetensors>=0.4",
+]
+
+[project.optional-dependencies]
+train = [
+    "torch==2.14.1",
+    "wandb>=0.31.2",
+]
+data = [
+    "pyarrow>=20.0",
+    "scipy>=1.13",
+]
+onnx = [
+    "onnx>=1.16",
+    "onnxruntime>=1.18",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+    "import-linter>=2.0",
+]
+
+[project.scripts]
+pawp = "pawp_tts.interfaces.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pawp_tts"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+strict = true
+warn_unused_configs = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "pyarrow.*",
+    "scipy.*",
+    "soundfile.*",
+    "onnx.*",
+    "onnxruntime.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.importlinter]
+root_package = "pawp_tts"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domain must remain pure with zero application, infrastructure, or interface imports"
+type = "forbidden"
+source_modules = ["pawp_tts.domain"]
+forbidden_modules = [
+    "pawp_tts.application",
+    "pawp_tts.infrastructure",
+    "pawp_tts.interfaces",
+    "torch",
+    "torchaudio",
+    "onnx",
+    "onnxruntime",
+    "httpx",
+    "yaml",
+    "soundfile",
+    "safetensors",
+    "dotenv",
+    "numpy",
+    "pyarrow",
+    "scipy",
+]
+
+[[tool.importlinter.contracts]]
+name = "Application must only depend on Domain"
+type = "forbidden"
+source_modules = ["pawp_tts.application"]
+forbidden_modules = [
+    "pawp_tts.infrastructure",
+    "pawp_tts.interfaces",
+    "torch",
+    "torchaudio",
+    "onnx",
+    "onnxruntime",
+    "httpx",
+    "yaml",
+    "soundfile",
+    "safetensors",
+    "pyarrow",
+    "scipy",
+]
+
+[[tool.importlinter.contracts]]
+name = "Infrastructure must not depend on Interfaces"
+type = "forbidden"
+source_modules = ["pawp_tts.infrastructure"]
+forbidden_modules = ["pawp_tts.interfaces"]

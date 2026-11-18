@@ -1,0 +1,52 @@
+# Environment & Local Config
+.env
+.env.*
+!.env.example
+AGENTS.md
+configs/local.yaml
+
+# Python / uv / Tooling
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Symlinked & Downloaded Datasets (Never commit data or raw media)
+data/sources
+data/cache
+data/manifests/*.jsonl
+data/splits/*.jsonl
+*.wav
+*.flac
+*.mp3
+*.ogg
+*.tar
+*.parquet
+
+# Checkpoints & Ephemeral Artifacts (Retain only explicit final release weights)
+artifacts/checkpoints/*
+!artifacts/checkpoints/.gitkeep
+!artifacts/checkpoints/final/
+artifacts/audio/*
+!artifacts/audio/.gitkeep
+artifacts/cache/
+*.safetensors
+!artifacts/checkpoints/final/*.safetensors
+*.onnx
+!artifacts/checkpoints/final/*.onnx
+*.pt
+*.pth
+*.ckpt
+*.bin
+
+# Experiment tracking local run files
+wandb/
