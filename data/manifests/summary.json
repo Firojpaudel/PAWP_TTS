@@ -1,0 +1,28 @@
+{
+  "counts_by_split": {
+    "test": 5480,
+    "val": 5679,
+    "train": 140028
+  },
+  "hours_by_split": {
+    "test": 9.506,
+    "val": 15.241,
+    "train": 375.18
+  },
+  "hours_by_language": {
+    "mixed": 15.445,
+    "en": 305.28,
+    "ne": 79.202
+  },
+  "speakers_by_split": {
+    "test": 60,
+    "val": 242,
+    "train": 1690
+  },
+  "dropped_duplicates": 131,
+  "dropped_duration": 37677,
+  "dropped_unk": 0,
+  "removed_cross_split": 25282,
+  "leakage_text_count": 0,
+  "leakage_speaker_count": 0
+}
