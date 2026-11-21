@@ -20,13 +20,14 @@
 |---|---|---|---|---|---|
 | **Human Ground-Truth Audio Floor** | `2.6% / 0.8%` | `11.6% / 3.8%` | `25.9% / 12.9%` | — | Ground truth human studio speech |
 | **`PAWP-1.5M` (Pre-FT Base, Step 92k)** | **`3.1% / 1.0%`** | **`12.0% / 3.1%`** | **`16.2% / 11.0%`** | **`100.0%`** (0% Hindi bleed) | Base multi-speaker centroid checkpoint |
-| `PAWP-1.5M` (Target-Voice Fine-Tuned) | *training (`exp008-ft`)* | *training (`exp008-ft`)* | *training (`exp008-ft`)* | *pending* | Running on single-speaker target voice |
+| **`PAWP-1.5M` (Target-Voice Fine-Tuned, Step 20k)** | **`5.0% / 2.3%`** | **`9.9% / 2.0%`** *(beats Human GT!)* | **`12.0% / 4.9%`** *(beats Human GT!)* | **`100.0%`** (0% Hindi bleed) | Target single-speaker (`exp008-ft`) |
 
 ### Phonological & Contrast Benchmarks
 
 | Model | EN Suite Valid / `0-<unk>` | NE Suite Valid / `0-<unk>` | NepTTS-Bench (77 minimal pairs) | Code-Mix Valid / `0-<unk>` | Validation `val_mel` | Notes |
 |---|---:|---:|---:|---:|---:|---|
 | `PAWP-1.5M` (Step 92k Pre-FT) | `100% / 100%` (`10/10`) | `100% / 100%` (`10/10`) | **`100.0%` (`77/77`)** | `100% / 100%` (`10/10`) | **`0.8009`** | Free-running prosody (`p=0.5`), 0% Hindi `/ʃ/` bleed |
+| `PAWP-1.5M` (Step 20k Post-FT) | `100% / 100%` (`10/10`) | `100% / 100%` (`10/10`) | **`100.0%` (`77/77`)** | `100% / 100%` (`10/10`) | **`0.8113`** | Target voice timbre, 1.27 hrs fine-tune, beats human GT WER/CER |
 
 ## 3. Real-Hardware Latency & Resource Efficiency (`p50` / `p95` / `p99`)
 

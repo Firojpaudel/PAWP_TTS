@@ -258,3 +258,25 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
   - **Memory & Latency:** One-time initial load time `~0.20s`, RAM footprint `~10.1 MB`, sentence phonemization latency `< 0.2 ms`.
   - **Heteronym Resolution:** Correctly disambiguates homographs like `दिन` (noun `/d̪in̪/` vs verb infinitive `/d̪in̪ʌ/`), `लिन`, `खान`, `जान`, and `तर` purely through syntactic context.
   - **Code Quality:** Zero hardcoded word sets in `nepali_adapter.py`, all imports at file top-level, `make check` 100% green (28 unit tests, 9 integration tests).
+
+---
+
+## EXP-008-FT: Single-Speaker Target-Voice Fine-Tuning (20k Steps)
+
+- **Date:** 2026-11-21 · **Status:** Completed & Evaluated (Clean Pass)
+- **Objective:** Adapt the base multi-speaker acoustic centroid (EXP-007 step 92k) into a cohesive, expressive single target voice across English, Nepali, and code-mixed speech using 13,037 high-quality studio target clips (`train_ft`) blended with a 15,000-clip replay buffer from `train` to prevent catastrophic forgetting.
+- **Training Parameters:**
+  - Initialized strictly from `artifacts/checkpoints/exp007/train_state.pt` (step 92,000).
+  - Schedule: 20,000 steps, batch size 128 (max 64k frames), cosine decay from LR `5e-4` down to `2.5e-5` (5% floor), GAN active from step 0 (`--gan-start 0`).
+  - Total training duration: 1.27 hours (4.39 steps/s) on NVIDIA RTX 4090 (BF16, peak VRAM 10.6 GB). Final `best_val_mel: 0.81129`, final train mel `0.7067`.
+- **Live Held-Out ASR Benchmark (30 held-out sentences per language against live recognizer):**
+  - **Nepali WER:** **`9.93%`** (down from 12.02% base; **beats human recording ground-truth floor of 11.60%**).
+  - **Nepali CER:** **`1.97%`** (down from 3.12% base; **beats human recording ground-truth floor of 3.82%**).
+  - **Code-mixed WER:** **`11.99%`** (down from 16.18% base; **cuts human recording error rate in half vs 25.91% floor**).
+  - **Code-mixed CER:** **`4.92%`** (down from 11.02% base; human ground-truth floor 12.88%).
+  - **English WER / CER:** **`5.03% / 2.28%`** (target voice pronunciation, highly intelligible).
+- **NepTTS-Bench (77 Minimal Pair Contrasts):**
+  - 100.0% contrast rate, 0% unknown tokens, 0% Hindi `/ʃ/` bleed symbol rate (`77/77` valid).
+- **Audio Deliverables:**
+  - Checkpoint saved at `artifacts/checkpoints/exp008/best.safetensors` (5.98 MB FP32).
+  - Post-finetune audio samples extracted to `artifacts/blog_samples/post_ft_step20k/` (`en_20000.wav`, `ne_20000.wav`, `codemix_20000.wav`).
