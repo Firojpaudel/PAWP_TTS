@@ -103,8 +103,9 @@ class PhonemizeUtteranceUseCase:
                         )
                     prev_w = words[w_idx - 1] if w_idx > 0 else None
                     next_w = words[w_idx + 1] if w_idx + 1 < len(words) else None
+                    next2_w = words[w_idx + 2] if w_idx + 2 < len(words) else None
                     if hasattr(self._ne, "phonemize_in_context"):
-                        syms = self._ne.phonemize_in_context(word, prev_w, next_w)
+                        syms = self._ne.phonemize_in_context(word, prev_w, next_w, next2_w)
                     else:
                         syms = self._ne.phonemize(word)
                     self._append_word_tokens(tokens, syms, LanguageCode.NE)

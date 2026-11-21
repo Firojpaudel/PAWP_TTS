@@ -194,3 +194,33 @@ def test_english_unbiased_inprocess_espeak_g2p() -> None:
         use_case.execute(sentence)
     mean_ms = (time.perf_counter() - t0) * 1000.0 / 50.0
     assert mean_ms < 5.0
+
+
+# --- Grammar-grounded context rules (see docs/PHONOLOGY.md) -------------------------------
+from pawp_tts.domain.phonology.nepali_rules import word_to_nepali_ipa as _ipa  # noqa: E402
+
+
+def test_din_day_vs_infinitive_before_modal_noun() -> None:
+    assert _ipa("दिन", "राम्रो", "हो") == ("d̪", "i", "n̪")
+    assert _ipa("दिन", "पैसा", "मन", next_next_word="लाग्यो") == ("d̪", "i", "n̪", "ʌ")
+    assert _ipa("दिन", "किताब", "सक्छ") == ("d̪", "i", "n̪", "ʌ")
+
+
+def test_modal_noun_is_never_infinitive() -> None:
+    assert _ipa("मन", "दिन", "लाग्यो") == ("m", "ʌ", "n̪")
+
+
+def test_lexical_final_schwa_retention() -> None:
+    assert _ipa("अब") == ("ʌ", "b", "ʌ")
+    assert _ipa("तिर") == ("t̪", "i", "r", "ʌ")
+    assert _ipa("दुख") == ("d̪", "u", "kʰ", "ʌ")
+
+
+def test_negative_finite_verb_keeps_final_schwa() -> None:
+    assert _ipa("गएन") == ("ɡ", "ʌ", "e", "n̪", "ʌ")
+
+
+def test_va_realized_as_b_before_front_vowels_and_clusters() -> None:
+    assert _ipa("विद्यालय")[0] == "b"
+    assert _ipa("व्यक्ति")[0] == "b"
+    assert _ipa("वन")[0] == "w"

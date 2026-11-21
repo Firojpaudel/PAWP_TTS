@@ -227,17 +227,24 @@ _STOP_HOMORGANIC_NASAL: dict[str, str] = {
 
 _AUXILIARY_STEM_PATTERNS = re.compile(
     r"^(नपा(ए|एर|उँ|इ)|नसक(े|एर|्|ि)|नहु(ने|ँ|न्)|नभ्या(ए|एर)|"
-    r"पा(यो|ए|एर|उँ|एन|इ)|"
+    r"पा(यो|ए|एर|उँ|एन|इ|उनु)|"
+    r"सक्(नु|ने|छ|छन्|छु|दै|दिन|दैन|दिएला)|"
     r"सक(्यो|े|एर|्छ|िन्छ|ेन)|"
+    r"चाह(न्छु|न्छ|न्छौँ|न्थे|न्थ्यो|नु|ने|िएला|े|्यो)|"
+    r"चाहि(न्छ|न्थ्यो|एला|एको|नु)|"
+    r"थाल्(नु|ने|छ|छन्|छु)|"
     r"थाल(्यो|े|एर|्छ|िन्)|"
+    r"लाग्(नु|ने|छ|छन्|छु)|"
     r"लाग(्यो|े|एर|्छ|िन्)|"
+    r"खोज्(नु|ने|छ|छन्|छु)|"
     r"खोज(्यो|े|एर|्छ|िन्)|"
-    r"पर्(छ|यो|े|दैन|िएला)|"
+    r"पर्(छ|यो|े|दैन|िएला|नु|ने|थ्यो)|"
     r"दि(यो|ए|एर|न्छ|इन्|एको|नु)|"
     r"गर्य(ो)|गरे(र|को)|"
-    r"आ(यो|ए|एर|उँछ)|"
-    r"ग(यो|ए|एर|इन्)|"
+    r"आ(यो|ए|एर|उँछ|नु)|"
+    r"ग(यो|ए|एर|इन्|नु)|"
     r"हुँ(दैन|हुन्न)|"
+    r"जानु(पर्छ|पर्ने|पर्यो)?|"
     r"छाड्(यो|े|एर)|छोड्(यो|े|एर)|हाल(्यो|े|एर))"
 )
 _CLOSED_FUNCTION_WORDS = frozenset({"तीन", "किन", "कुन", "पनि", "छैन", "होइन", "हैन", "अझै", "सधैँ"})
@@ -271,7 +278,39 @@ _CARDINAL_WORDS = frozenset(
     }
 )
 _PURPOSIVE_PARTICLES = frozenset({"लागि", "निम्ति", "भनेर", "भन्दै", "खोजेर", "को", "का"})
-_GENITIVE_MARKERS = ("को", "का", "की", "रो", "रा", "री", "नो", "ना", "नी")
+_GENITIVE_MARKERS = ("को", "का", "की")
+_POSSESSIVE_PRONOUNS = frozenset(
+    {
+        "मेरो",
+        "मेरा",
+        "मेरी",
+        "हाम्रो",
+        "हाम्रा",
+        "हाम्री",
+        "तिम्रो",
+        "तिम्रा",
+        "तिम्री",
+        "आफ्नो",
+        "आफ्ना",
+        "आफ्नी",
+    }
+)
+
+# Nouns that act as the experiencer/subject of modal constructions ("<inf> मन लाग्नु").
+# They are never infinitives themselves; the word *before* them is.
+# Source: infinitive -न with potential/desiderative constructions (Nepali grammar references).
+_MODAL_NOUNS = frozenset({"मन", "इच्छा", "रहर", "डर", "लाज", "जाँगर"})
+_LAAG_FORMS = re.compile(r"^(लाग(्यो|े|एर|्छ|िन्|ेको|्दैन|ेन|्ने|्थ्यो))$")
+
+# Words that keep the final inherent vowel /ʌ/ despite the general noun deletion rule.
+# Adverbs and postpositions keep it (अब /ʌbʌ/, तिर /t̪irʌ/), as do a few nouns (दुख /dukʰʌ/,
+# सुख /sukʰʌ/). Source: Nepali phonology (Khatiwada 2009; Pokharel 1989), via secondary
+# description; see docs/PHONOLOGY.md.
+_KEEP_FINAL_SCHWA = frozenset({"अब", "जब", "तब", "तिर", "दुख", "सुख"})
+
+# Negative past/finite verb endings keep the final /ʌ/ unless a halanta is written
+# (e.g. गएन /ɡʌenʌ/). Source: finite verbs retain final schwa (Khatiwada 2009 via secondary).
+_NEGATIVE_FINITE_ENDINGS = ("एन", "ेन", "ैन")
 
 
 @dataclass(frozen=True)
@@ -445,8 +484,11 @@ def _is_verbal_infinitive(
     aksharas: list[Akshara],
     prev_word: str | None,
     next_word: str | None,
+    next_next_word: str | None = None,
 ) -> bool:
     if not aksharas or len(word) < 2 or word in _CLOSED_FUNCTION_WORDS:
+        return False
+    if word in _MODAL_NOUNS:
         return False
     last = aksharas[-1]
     if not (last.consonants == ("न",) and last.has_inherent_schwa and not last.has_virama):
@@ -455,10 +497,16 @@ def _is_verbal_infinitive(
         clean_prev = re.sub(r"[^\u0900-\u097F]", "", prev_word)
         if clean_prev in _CARDINAL_WORDS or _DETERMINER_PATTERNS.match(clean_prev):
             return False
-        if any(clean_prev.endswith(g) for g in _GENITIVE_MARKERS):
+        if clean_prev in _POSSESSIVE_PRONOUNS or any(
+            clean_prev.endswith(g) for g in _GENITIVE_MARKERS
+        ):
             return False
     if next_word:
         clean_next = re.sub(r"[^\u0900-\u097F]", "", next_word)
+        # "<inf> मन लाग्यो": the infinitive precedes the modal noun
+        if clean_next in _MODAL_NOUNS:
+            clean_nn = re.sub(r"[^\u0900-\u097F]", "", next_next_word or "")
+            return bool(_LAAG_FORMS.match(clean_nn))
         if _AUXILIARY_STEM_PATTERNS.match(clean_next) or clean_next in _PURPOSIVE_PARTICLES:
             return True
     return bool(word.endswith("ाउन") and len(word) >= 4 and next_word)
@@ -469,6 +517,7 @@ def word_to_nepali_ipa(
     prev_word: str | None = None,
     next_word: str | None = None,
     override_lexicon: dict[str, tuple[str, ...]] | None = None,
+    next_next_word: str | None = None,
 ) -> tuple[str, ...]:
     """Convert a single Devanagari word in syntactic context to contrast-preserving IPA."""
     clean = re.sub(r"[^\u0900-\u097F]", "", unicodedata.normalize("NFC", word))
@@ -484,13 +533,17 @@ def word_to_nepali_ipa(
     n_ak = len(aksharas)
     retain_final_schwa = False
     if aksharas[-1].has_inherent_schwa:
-        if n_ak == 1:
+        if (
+            n_ak == 1
+            or clean in _KEEP_FINAL_SCHWA
+            or (clean.endswith(_NEGATIVE_FINITE_ENDINGS) and n_ak >= 2)
+        ):
             retain_final_schwa = True
         elif aksharas[-1].is_conjunct:
             # Tatsama cluster protection (e.g., मित्र -> /mit̪rʌ/)
             retain_final_schwa = True
         elif not _NOUN_POSTPOSITIONS.search(clean) and _is_verbal_infinitive(
-            clean, aksharas, prev_word, next_word
+            clean, aksharas, prev_word, next_word, next_next_word
         ):
             retain_final_schwa = True
 
@@ -556,6 +609,12 @@ def word_to_nepali_ipa(
                 and (not aksharas[idx - 1].nasal_mark)
             ):
                 mapped = "ɽ" if c_char == "ड" else "ɽʱ"
+            # व -> /b/ before e, i, o, ʌi and before र/य/व (Nepali phonology, secondary source)
+            if c_char == "व":
+                nxt_c = c_list[c_idx + 1] if c_idx + 1 < len(c_list) else None
+                vow = ak.vowel_ipa[0] if (nxt_c is None and ak.vowel_ipa) else ""
+                if nxt_c in {"र", "य", "व"} or vow in {"e", "i", "o", "ʌi", "ʌɪ"}:
+                    mapped = "b"
             if mapped:
                 ipa.append(mapped)
             c_idx += 1
