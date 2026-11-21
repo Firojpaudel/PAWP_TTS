@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use PAWP-TTS (code, model weights, lexicon or data), please cite it as below."
+title: "PAWP-TTS: Phoneme-Aware Weight Programming for Compact Bilingual English–Nepali Speech Synthesis"
+authors:
+  - family-names: Paudel
+    given-names: Firoj
+year: 2026
+version: 0.1.0
+date-released: 2026-11-22
+repository-code: "https://github.com/Firojpaudel/PAWP_TTS"
+license: Apache-2.0
+keywords:
+  - text-to-speech
+  - Nepali
+  - code-mixing
+  - model compression
+  - weight-space programming
+preferred-citation:
+  type: software
+  title: "PAWP-TTS: Phoneme-Aware Weight Programming for Compact Bilingual English–Nepali Speech Synthesis"
+  authors:
+    - family-names: Paudel
+      given-names: Firoj
+  year: 2026
+  url: "https://github.com/Firojpaudel/PAWP_TTS"

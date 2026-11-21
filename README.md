@@ -201,6 +201,21 @@ uv run pawp synth \
 
 ---
 
+## License and Citation
+
+- **Code:** [Apache License 2.0](LICENSE). Keep the copyright and [NOTICE](NOTICE) when redistributing.
+- **Model weights, lexicon, documentation and audio samples:** [CC BY 4.0](LICENSE-MODEL). You may use them, commercially too, **with attribution to this project**.
+- **Please cite** PAWP-TTS if you use it (GitHub's *Cite this repository* button reads [CITATION.cff](CITATION.cff)):
+
+```bibtex
+@software{paudel2026pawptts,
+  author = {Paudel, Firoj},
+  title  = {{PAWP-TTS}: Phoneme-Aware Weight Programming for Compact Bilingual English--Nepali Speech Synthesis},
+  year   = {2026},
+  url    = {https://github.com/Firojpaudel/PAWP_TTS}
+}
+```
+
 ## Scientific Integrity
 
 - Parameter counts always include every learned tensor required at inference time (decoder/vocoder included).

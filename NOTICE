@@ -1,0 +1,12 @@
+PAWP-TTS
+Copyright 2026 Firoj Paudel
+
+This product includes software developed as part of the PAWP-TTS project
+(Phoneme-Aware Weight Programming for Compact Bilingual English–Nepali Speech Synthesis).
+
+Source code is licensed under the Apache License, Version 2.0 (see LICENSE).
+Model weights, pronunciation lexicon, documentation and audio samples are licensed under
+the Creative Commons Attribution 4.0 International License (see LICENSE-MODEL).
+
+If you use this software, model, or data in research or products, please cite it as described
+in CITATION.cff.
