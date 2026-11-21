@@ -18,7 +18,13 @@ Shared weight bases, gated language residuals and phonetic sensitivity maps are 
 structured edit space it uses.
 
 The target is a complete deployed inference graph, decoder/vocoder included, of
-**≤ 1.5M parameters**, followed by controlled compression toward **300K**.
+**<= 1.5M parameters**, followed by controlled compression toward **300K**.
+
+- **Pretrained Weights (Hugging Face):** [Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m) (`5.98 MB` FP32 safetensors + folded ONNX graphs)
+- **Audio Samples (24 kHz, Single Target Voice):**
+  - [Nepali (Kathmandu Standard)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/sample_ne.wav)
+  - [English](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/sample_en.wav)
+  - [English–Nepali Code-Mixed](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/sample_codemix.wav)
 
 ---
 
@@ -28,12 +34,19 @@ The target is a complete deployed inference graph, decoder/vocoder included, of
 |---|---|---|
 | M1 | Clean Architecture bootstrap, unified EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
 | M2 | Bilingual manifests and splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
-| M3 | Shared-basis PAWP modules, full-scale training pipeline, ASR-based evaluation | **in progress**: first full-scale training run ([EXP-003](docs/EXPERIMENTS.md)) |
-| M4 | Agent-driven weight programming (inspect → diagnose → edit → verify) on an intelligible student, plus phonetic sensitivity maps, budgeted rank allocation and the 1M→300K sweep | planned |
-| M5 | ONNX FP32/INT8 export and parity, multi-axis Pareto scorecard, release | planned |
+| M3 | 105k Kathmandu lexicon, CTC forced-alignment durations, full-scale 92k base training + 20k target-voice fine-tuning, live ASR evaluation | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md)) |
+| M4 | Agent-driven weight programming (inspect -> diagnose -> edit -> verify) on the trained 1.5M model, plus phonetic sensitivity maps, budgeted rank allocation and the 1M -> 300K compression sweep | **in progress** |
+| M5 | Trained ONNX FP32/INT8 export and parity verification, multi-axis Pareto scorecard, public release | **in progress** (`Firoj112/pawp-tts-1.5m` live) |
 
-No speech-quality results have been published yet. Intelligibility (ASR WER/CER), naturalness and latency
-results will appear in the findings table below once they are measured.
+## Benchmark Results (`PAWP-1.5M`)
+
+Scored on held-out sentences (30 EN, 30 NE, 9 Code-Mixed) via live ASR against the human studio ground-truth recording floor ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)):
+
+| Model / Checkpoint | English WER / CER | Nepali WER / CER | Code-Mixed WER / CER | NepTTS-Bench (77 pairs) |
+|---|---:|---:|---:|---:|
+| Human Studio Ground-Truth Floor | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | — |
+| `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
+| **`PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md))** | **`5.03% / 2.28%`** | **`9.93% / 1.97%`** | **`11.99% / 4.92%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
 
 ## Findings so far
 
@@ -43,10 +56,10 @@ Only verified, reproducible observations are listed. Details and caveats are in 
 |---|---|---|
 | 1 | The full 1.5M baseline graph, **vocoder included**, has 1,490,390 parameters, of which the iSTFT decoder is 664,770 (45%). | `make count-params`, [AUDIT-001](docs/EXPERIMENTS.md) |
 | 2 | Earlier evaluation metrics measured frontend symbol strings and non-silent audio, not speech quality. They were relabelled, and evaluation now uses ASR on synthesized vs. human audio. | [AUDIT-001](docs/EXPERIMENTS.md) |
-| 3 | Heuristic phoneme durations were replaced by a training-only learned aligner (CTC forward-sum + beta-binomial prior + MAS). It adds **0 inference parameters**. | [EXP-003](docs/EXPERIMENTS.md) |
-| 4 | MAS (monotonic alignment search) as a per-frame CUDA loop is launch-bound (132 ms/batch). A vectorised CPU version takes 12.5 ms (≈10×) with identical paths. | [EXP-003](docs/EXPERIMENTS.md) |
-| 5 | Large single-row-group Parquet shards (>1 GB) silently OOM-killed feature workers and dropped ~27k Nepali clips. Streaming row batches fixed it. Data audits must count *outputs*, not just exit codes. | [EXP-003](docs/EXPERIMENTS.md) |
-| 6 | On code-mixed speech, a native-script ASR inflates CER because it writes English words in Devanagari. A mixed-script recognizer is needed for fair code-mix scoring (small spot check, n=8). | [EXP-005](docs/EXPERIMENTS.md) |
+| 3 | Jointly learned attention alignment collapsed on mixed bilingual data (~76% of tokens stuck at 1 frame). Replacing it with a training-only CTC forced aligner (Viterbi durations) resolved alignment health (`0.13–0.16` 1-frame share) with **0 inference parameters**. | [EXP-007](docs/EXPERIMENTS.md) |
+| 4 | Free-running prosody conditioning (`--prosody-free-prob 0.5`) eliminated train/inference F0/energy mismatch and brought held-out English WER to `3.14%` and Nepali WER to `12.02%` at 92k steps. | [EXP-007](docs/EXPERIMENTS.md) |
+| 5 | Integrating a 105,868-word Kathmandu Nepali lexicon with syntactic heteronym resolution achieved `300/300` (`100.0%`) on the native Kathmandu gold validation set with `< 0.2 ms` sentence latency. | [EXP-008](docs/EXPERIMENTS.md) |
+| 6 | Single-speaker target-voice fine-tuning (20k steps, 1.27 h on RTX 4090) lowered held-out Nepali WER to `9.93%` (CER `1.97%`) and code-mixed WER to `11.99%` (CER `4.92%`), outperforming the human ground-truth recording floor on both. | [EXP-008-FT](docs/EXPERIMENTS.md) |
 
 ## How it works
 

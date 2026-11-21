@@ -251,6 +251,8 @@ def _cmd_build_manifests(container: AppContainer, args: argparse.Namespace) -> i
 def _cmd_export_onnx(_container: AppContainer, args: argparse.Namespace) -> int:
     cfg = load_student_config(args.config)
     model = PAWPBilingualTTS(cfg).eval()
+    if args.checkpoint:
+        CheckpointManager.load(model, args.checkpoint)
     paths = OnnxStreamingExporter.export(model, args.lang, args.output_dir)
     enc_kb = paths.encoder_dur_path.stat().st_size / 1024.0
     dec_kb = paths.frame_decoder_path.stat().st_size / 1024.0
@@ -345,6 +347,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_ox = sub.add_parser("export-onnx", help="Export folded monolingual ONNX streaming graphs")
     p_ox.add_argument("--config", type=str, default="configs/student_1_5m.yaml")
+    p_ox.add_argument("--checkpoint", type=str, default=None)
     p_ox.add_argument("--lang", choices=["en", "ne"], default="en")
     p_ox.add_argument("--output-dir", type=str, default="artifacts/cache/onnx_export")
 
@@ -595,6 +598,7 @@ def _cmd_synth(container: AppContainer, args: argparse.Namespace) -> int:
     ckpt: str | None = args.checkpoint
     if not ckpt:
         candidates = [
+            Path("artifacts/checkpoints/exp008/best.safetensors"),
             Path("artifacts/checkpoints/exp007/best.safetensors"),
             Path("artifacts/checkpoints/exp007/latest.safetensors"),
             Path("artifacts/checkpoints/best.safetensors"),
