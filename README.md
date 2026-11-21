@@ -21,16 +21,31 @@ The deployed `PAWP-1.5M` inference graph — **neural iSTFT vocoder included** �
 
 ## Audio Samples (24 kHz, Unedited Outputs)
 
-Generated directly from our default polished checkpoint ([Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m)):
+Generated directly from our default polished checkpoint ([Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m)). Click play on any waveform below:
 
-| Language / Type | Text | 24 kHz Audio |
-| :--- | :--- | :---: |
-| Nepali (Natural) | नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्। | [Listen (`ne_nature.wav`, 4.9s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_nature.wav) |
-| Nepali (Phonology: gemination & `/s/`) | पाता र पत्ता अनि शहर र सहरको उच्चारण मानक नेपालीमा स्पष्ट सुनिन्छ। | [Listen (`ne_phonology.wav`, 4.8s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_phonology.wav) |
-| English (Technical) | Neural speech synthesis can now run completely on edge devices with very low latency. | [Listen (`en_edge.wav`, 5.5s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_edge.wav) |
-| English (Expressive) | The sudden change in the weather made the evening walk surprisingly refreshing. | [Listen (`en_weather.wav`, 4.6s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_weather.wav) |
-| Code-Mixed (Everyday) | Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु। | [Listen (`codemix_flight.wav`, 5.3s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_flight.wav) |
-| Code-Mixed (Technical) | आज हाम्रो team ले नयाँ AI model deploy गर्‍यो, performance एकदमै smooth देखिन्छ। | [Listen (`codemix_deploy.wav`, 5.4s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_deploy.wav) |
+**Nepali (Natural)** — *"नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्।"* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_nature.wav))
+
+https://github.com/user-attachments/assets/1a36ec3e-e2ae-4dc3-be6e-ac796a699f6a
+
+**Nepali (Phonology: gemination & alveolar `/s/`)** — *"पाता र पत्ता अनि शहर र सहरको उच्चारण मानक नेपालीमा स्पष्ट सुनिन्छ।"* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_phonology.wav))
+
+https://github.com/user-attachments/assets/936708ac-d212-42de-8c56-c2942eb2ff61
+
+**English (Technical)** — *"Neural speech synthesis can now run completely on edge devices with very low latency."* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_edge.wav))
+
+https://github.com/user-attachments/assets/10000503-459e-4457-8923-24581ccc1464
+
+**English (Expressive)** — *"The sudden change in the weather made the evening walk surprisingly refreshing."* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_weather.wav))
+
+https://github.com/user-attachments/assets/05fb0388-92e4-4e75-9c45-35b1eeea5ed8
+
+**Code-Mixed (Everyday)** — *"Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु।"* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_flight.wav))
+
+https://github.com/user-attachments/assets/6fad8c15-fe7d-46b2-ad26-3c1c90d2a0e2
+
+**Code-Mixed (Technical)** — *"आज हाम्रो team ले नयाँ AI model deploy गर्‍यो, performance एकदमै smooth देखिन्छ।"* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_deploy.wav))
+
+https://github.com/user-attachments/assets/12481db6-8665-4478-bcaf-0626dbc7fadc
 
 Additional `WSP-E3` samples are hosted directly on [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) with inline audio players.
 
