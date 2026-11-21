@@ -48,6 +48,22 @@ Every learned parameter in the complete deployed inference graph (including embe
 
 ## 3. Weight-Space Programming Algorithms (Deliverable 4)
 
+### 3.0 Agent Loop (Core Procedure)
+
+Weight-space programming here means that an AI agent reads and edits the trained network's weights like a program ([concept](https://rikiyat.github.io/blog/weight-space-programming/)). The algorithms below are the instruments and the structured edit space it uses.
+
+```text
+trained, intelligible student
+  └─ INSPECT   per-phoneme-category activations, weight directions, basis coefficients, language residuals
+  └─ DIAGNOSE  link a measured failure (e.g. dental↔retroflex confusion) to a mechanism; test with ablation/patching
+  └─ EDIT      budgeted surgical change: direction removal/insertion, rank-1 update, residual transplant,
+               basis-coefficient edit, capacity reallocation (logged as a diff + hypothesis)
+  └─ VERIFY    held-out PER/WER/CER, minimal-pair accuracy, speaker similarity, latency; keep only non-regressing edits
+  └─ COMPARE   vs. equal-budget gradient fine-tuning, FWSVD, AdaLoRA, RigL, and random edits of equal size
+```
+
+Precondition: editing cannot create a missing capability, so the loop runs only on a checkpoint that passes the intelligibility gate (held-out ASR).
+
 1. **Shape-Compatible Layer Pools ($\mathcal{G}$):**
    - Pool `pw1`: 8 matrices of shape `(256, 128)` across encoder & acoustic ConvNeXt1D blocks.
    - Pool `pw2`: 8 matrices of shape `(128, 256)` across encoder & acoustic ConvNeXt1D blocks.
