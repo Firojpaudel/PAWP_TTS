@@ -21,6 +21,7 @@
 | **Human Ground-Truth Audio Floor** | `2.6% / 0.8%` | `11.6% / 3.8%` | `25.9% / 12.9%` | — | Ground truth human studio speech |
 | **`PAWP-1.5M` (Pre-FT Base, Step 92k)** | **`3.1% / 1.0%`** | **`12.0% / 3.1%`** | **`16.2% / 11.0%`** | **`100.0%`** (0% Hindi bleed) | Base multi-speaker centroid checkpoint |
 | **`PAWP-1.5M` (Target-Voice Fine-Tuned, Step 20k)** | **`5.0% / 2.3%`** | **`9.9% / 2.0%`** *(beats Human GT!)* | **`12.0% / 4.9%`** *(beats Human GT!)* | **`100.0%`** (0% Hindi bleed) | Target single-speaker (`exp008-ft`) |
+| **`PAWP-1.5M` Polished Default (`EXP-012`, +10k)** | **`4.9% / 2.8%`** | **`11.4% / 2.7%`** *(beats Human GT!)* | **`11.0% / 4.1%`** *(beats Human GT!)* | **`100.0%`** (0% Hindi bleed) | Pure-target phase/timbre polish; default HF release |
 | **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit)** | **`5.0% / 2.2%`** | **`9.9% / 2.0%`** | **`9.9% / 4.0%`** | **`100.0%`** (0% Hindi bleed) | `EXP-009` surgical `acoustic u_en/v_en` (`3.3%` edited) |
 | **`PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit)** | **`4.7% / 2.0%`** | **`10.1% / 1.9%`** | **`11.7% / 4.9%`** | **`100.0%`** (0% Hindi bleed) | `EXP-009` Nepali-orthogonal null-space (`4.7%` edited) |
 | **`PAWP-1.0M` Decoder-Centric (Zero-Shot)** | **`9.6% / 6.9%`** | **`22.8% / 9.7%`** | **`19.1% / 9.7%`** | **`100.0%`** (0% Hindi bleed) | `EXP-010b` (`998.8K` params; beats Uniform SVD `14.3% / 23.1% / 20.8%`) |

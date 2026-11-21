@@ -598,6 +598,7 @@ def _cmd_synth(container: AppContainer, args: argparse.Namespace) -> int:
     ckpt: str | None = args.checkpoint
     if not ckpt:
         candidates = [
+            Path("artifacts/checkpoints/exp012_polish/best.safetensors"),
             Path("artifacts/checkpoints/exp008/best.safetensors"),
             Path("artifacts/checkpoints/exp007/best.safetensors"),
             Path("artifacts/checkpoints/exp007/latest.safetensors"),
