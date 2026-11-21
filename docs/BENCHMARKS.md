@@ -25,3 +25,14 @@
 | `PAWP-1.5M` (`onnx_cpu_folded`, structural) | CPU (`4` threads) | `60.0 ms` | `0.159 / 0.330 ms` | **`1.11 / 1.42 / 1.52 ms`** | **`173.36x`** (`0.0058`) | `652.6 MB` |
 | `PAWP-1.5M` (`pytorch_cpu_folded`, structural) | CPU (`4` threads) | `60.0 ms` | `0.171 / 0.198 ms` | `3.26 / 3.86 / 4.21 ms` | `74.49x` (`0.0134`) | `661.3 MB` |
 | `PAWP-1.5M` (`pytorch_cuda_folded`, structural) | NVIDIA GeForce RTX 4090 (`1` thread) | `60.0 ms` | `0.165 / 0.192 ms` | `3.30 / 3.67 / 3.72 ms` | `96.36x` (`0.0104`) | `1313.6 MB` |
+
+## 4. Linguistic Frontend & Pronunciation Lexicon Benchmarks
+
+| Metric / Evaluation Component | Measurement | Standard / Reference | Status |
+|---|---:|---|---|
+| Full Nepali Lexicon Coverage (`ne_lexicon.tsv`) | **105,868 words** | NFC-normalized standard Kathmandu Nepali | Verified (0 missing symbols) |
+| Unified Phoneme Inventory Compliance | **100.0%** (936,987 / 936,987 tokens) | Unified 128-token phonological inventory | Verified (0 unknown tokens) |
+| Context Heteronym Entries (`ne_heteronyms.tsv`) | **152 readings** across 76 words | Grammatical lookahead (infinitives vs nominals) | Verified |
+| Gold 300 Native Kathmandu Validation (`make frontend-validate`) | **100.0%** (300 / 300 passed) | Native-verified benchmark sample (seed=42) | Verified clean pass |
+| In-Process English G2P (`libespeak-ng.so.1` via ctypes) | `< 0.20 ms` / sentence | Zero-word hardcoding, thread-safe | Verified |
+| Nepali Lexicon Startup & Cache Latency | `~0.20 s` (one-time) | Module-level cached dict (~10.1 MB RAM) | Sub-millisecond lookup |

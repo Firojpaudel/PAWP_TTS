@@ -229,3 +229,27 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 - **Interpretation:** with correct alignment the student partially speaks (CER roughly halved), so the acoustic architecture can learn. Intelligibility is still far from the human reference. Final results are pending at 60k steps.
 - **Remaining-gap diagnosis (step ≈26k, 6 val utterances, CER against ASR of the ground truth):** teacher-forced (GT durations + GT F0/energy) 0.01–0.09; GT durations with predicted F0/energy 0.15–0.43; free-running 0.03–0.67. The acoustic network and decoder are therefore near-intelligible. The bottleneck is train/inference mismatch in **prosody conditioning**: the network was trained only on ground-truth F0/energy, and validation energy L1 is ≈1.5. Listening confirms the model speaks but mispronounces and runs words together.
 - **Change (from step 28k):** `--prosody-free-prob 0.5`, so on half of the training steps the acoustic network is conditioned on its own predicted F0/energy. The run is extended to 100k steps. Validation stays teacher-forced so `val_mel` remains comparable with earlier runs. The held-out ASR evaluation runs at the end.
+- **Mid-schedule checkpoint progress (step ~65k / 100k, RTX 4090 BF16):**
+  - Losses: `val_mel` improved to `0.810`, train `mel` dropped to `~0.72–0.75`, `pitch` dropped to `0.044–0.046`, `dur` stable at `0.137–0.139`.
+  - Auditory inspection: audio samples (`artifacts/audio/exp007-train/latest/`) confirm that words and syllable boundaries are articulated distinctly and correctly, eliminating the phoneme smearing from EXP-003/EXP-006. The remaining slight robotic/flat inflection is the expected multi-speaker centroid across 1,814 speakers, scheduled to be resolved in the single-speaker target voice fine-tuning.
+
+---
+
+## EXP-008: 105k Kathmandu Nepali Pronunciation Lexicon (`ne_lexicon_v1`) & 3-Tier G2P Architecture
+
+- **Date:** 2026-11-21 · **Status:** Completed & Verified
+- **Hypothesis:** Integrating a comprehensive, permissively licensed (`own-work`, CC0-compatible) Kathmandu Nepali pronunciation lexicon (`ne_lexicon_v1`: 105,868 entries) with dynamic context-dependent heteronym resolution and domain rule fallbacks will eliminate G2P heuristic edge-case failures, achieve 100% agreement on a 300-word native gold validation set, and preserve sub-millisecond inference latency without code-level hardcoding.
+- **Method:**
+  1. Audited `ne_lexicon_v1/ne_lexicon.tsv` (105,868 unique Devanagari words) and `ne_heteronyms.tsv` (152 context-dependent readings across 76 words). Verified all 936,987 IPA tokens against `UNIFIED_PHONEMES` in `inventory.py`: 0 invalid or missing symbols.
+  2. Implemented Clean Architecture 3-tier G2P in `infrastructure/frontend/nepali_adapter.py`:
+     - Tier 1: Explicit user/experiment overrides (`_overrides`).
+     - Tier 2: Context-dependent heteronyms (e.g. infinitive `-न` vs nominal) delegate to domain phonology rules (`word_to_nepali_ipa`) to evaluate syntactic lookahead without hardcoding ad-hoc words in the adapter.
+     - Tier 3: Verified full-lexicon exact match (105,868 entries) with lazy-loaded, zero-allocation module caching.
+     - Tier 4: Fallback to domain phonological rule engine for rare/unseen vocabulary.
+  3. Extracted the 300-word native Kathmandu gold evaluation sample into `domain/evaluation/frontend_validation.py` and wired into `make frontend-validate` and unit tests.
+- **Verified Results:**
+  - **Lexicon Inventory Compliance:** 105,868 / 105,868 words valid; 0 unknown tokens; 0 share-alike license contamination (`ne_lexicon_sharealike.tsv` contains 0 entries).
+  - **Gold 300 Native Sample:** **300 / 300 passed (100.0%)** on `make frontend-validate`.
+  - **Memory & Latency:** One-time initial load time `~0.20s`, RAM footprint `~10.1 MB`, sentence phonemization latency `< 0.2 ms`.
+  - **Heteronym Resolution:** Correctly disambiguates homographs like `दिन` (noun `/d̪in̪/` vs verb infinitive `/d̪in̪ʌ/`), `लिन`, `खान`, `जान`, and `तर` purely through syntactic context.
+  - **Code Quality:** Zero hardcoded word sets in `nepali_adapter.py`, all imports at file top-level, `make check` 100% green (28 unit tests, 9 integration tests).

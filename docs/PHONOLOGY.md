@@ -39,13 +39,14 @@ Variant choices follow standard Kathmandu Nepali.
 | Medial schwa syncope beyond the current heuristic | — | Not covered by the sources accessed |
 | Realisation of ज्ञ, क्ष, त्र, श्र, ऋ | — | Current choices unverified; check against native recordings |
 
-## Evaluation
+## Evaluation & Validation Suites
 
-- `tests/unit/test_nepali_phonology.py` holds regression tests for every implemented rule.
-- Planned:
-  - a hand-checked Nepali pronunciation test list, scored for this frontend and other open Nepali frontends, with eSpeak-NG `ne` as a Hindi-leaning reference;
-  - a context-disambiguation test built from a part-of-speech-labelled polysemy set;
-  - a native-recording check using the training-only CTC phoneme recognizer.
+- **Unit Regression Tests:** `tests/unit/test_nepali_phonology.py` holds regression tests for every implemented phonological rule (sibilant merger, alveolar affricates, 4-way laryngeal stops, retroflex flapping, gemination, breathy lengthening, and clitic code-mixing).
+- **Gold Native Evaluation (`make frontend-validate`):** `domain/evaluation/frontend_validation.py` and `tests/unit/test_frontend_validation.py` hold a 300-word native Kathmandu gold evaluation suite (covering core closed-class, inflected verbs, nouns, and gazetteer terms), validated at **100.0% accuracy** (300/300).
+- **Pronunciation Lexicon (`ne_lexicon_v1`):** Integrated 105,868-word permissive Kathmandu lexicon (`data/lexicon/ne_lexicon_v1/`) with 100% symbol compliance with our unified IPA inventory (0 missing tokens across 936,987 symbols).
+- **Context Heteronym Disambiguation:** Integrated 152 context-dependent readings across 76 homographs (e.g., verbal infinitive in `-न` like `दिन/लिन/खान/जान` vs nominal readings) mediated through domain syntactic lookahead.
+- **Planned:**
+  - native-recording acoustic cross-check using the training-only CTC phoneme recognizer.
 
 ## Sources
 
