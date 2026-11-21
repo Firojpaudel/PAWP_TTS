@@ -204,7 +204,7 @@ uv run pawp synth \
 ## License and Citation
 
 - **Code:** [Apache License 2.0](LICENSE). Keep the copyright and [NOTICE](NOTICE) when redistributing.
-- **Model weights, lexicon, documentation and audio samples:** [CC BY 4.0](LICENSE-MODEL). You may use them, commercially too, **with attribution to this project**.
+- **Model weights, lexicon, documentation and audio samples:** [CC BY 4.0](MODEL_LICENSE.md). You may use them, commercially too, **with attribution to this project**.
 - **Please cite** PAWP-TTS if you use it (GitHub's *Cite this repository* button reads [CITATION.cff](CITATION.cff)):
 
 ```bibtex

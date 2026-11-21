@@ -6,7 +6,7 @@ This product includes software developed as part of the PAWP-TTS project
 
 Source code is licensed under the Apache License, Version 2.0 (see LICENSE).
 Model weights, pronunciation lexicon, documentation and audio samples are licensed under
-the Creative Commons Attribution 4.0 International License (see LICENSE-MODEL).
+the Creative Commons Attribution 4.0 International License (see MODEL_LICENSE.md).
 
 If you use this software, model, or data in research or products, please cite it as described
 in CITATION.cff.
