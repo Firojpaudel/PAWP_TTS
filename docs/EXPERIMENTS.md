@@ -333,3 +333,20 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
   2. At **`750K`** (`50%` compression, zero retraining), unconstrained **PAWP Adaptive** beats Uniform SVD by `-17.21%` EN WER and `-13.54%` NE WER.
   3. At **`500K`** (`67%` compression), zero-shot one-shot SVD collapses for both methods, confirming that `500K` and `300K` tiers require recovery distillation or co-training from compact shared-basis architectures (`configs/student_1m_pawp.yaml` and smaller).
 - **Saved Checkpoint:** `artifacts/checkpoints/exp010_compress/pawp_1m_dc_zeroshot.safetensors`.
+
+---
+
+## EXP-012: `PAWP-1.5M` Pure Target-Voice Phase & Timbre Polish + WSP Verification
+
+- **Date:** 2026-11-21 · **Status:** Completed & Evaluated
+- **Objective:** Reduce subtle iSTFT metallic phase coloration on `PAWP-1.5M` by continuing for 10,000 low-LR steps (`1.5e-4`, GAN active from step 0) from `exp008/train_state.pt` with a 5x higher target-voice ratio (`train_ft` + `3,000` replay clips), then testing zero-training WSP (`E3` and `Null-64`) on top of the polished weights.
+- **Results (Live Held-Out ASR, `en=30, ne=30, mix=9`, NepTTS-Bench `77/77` = `100.0%`):**
+
+| Checkpoint | EN WER / CER | NE WER / CER | Code-Mix WER / CER | Notes |
+|---|---:|---:|---:|---|
+| `EXP-008-FT` (Pre-Polish) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | Base target voice |
+| **`EXP-012` Polish (`best.safetensors`)** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | Audibly smoother timbre; beats Human GT on NE & Mix |
+| `EXP-012` Polish + `WSP-E3` | `5.21% / 2.69%` | `11.41% / 2.66%` | **`10.54% / 4.10%`** | `-0.45%` Mix WER, `0.00%` NE drift |
+| `EXP-012` Polish + `WSP-Null64` | **`4.34% / 1.75%`** | `13.35% / 2.70%` | `11.24% / 4.89%` | `-0.52%` EN WER, `-1.04%` EN CER |
+
+- **Saved Checkpoints:** `artifacts/checkpoints/exp012_polish/{best,pawp_1_5m_polish_wsp_e3,pawp_1_5m_polish_wsp_null64}.safetensors` (original `exp008` and `exp009_wsp` untouched).
