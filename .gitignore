@@ -40,6 +40,9 @@ artifacts/checkpoints/*
 artifacts/audio/*
 !artifacts/audio/.gitkeep
 artifacts/cache/
+artifacts/release/
+artifacts/blog_samples/
+*.npz
 *.safetensors
 !artifacts/checkpoints/final/*.safetensors
 *.onnx
