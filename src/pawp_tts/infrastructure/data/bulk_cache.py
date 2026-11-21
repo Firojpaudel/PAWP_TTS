@@ -55,7 +55,7 @@ def _read_audio(rec: dict[str, Any], sources_dir: Path) -> tuple[np.ndarray, int
             n = pf.metadata.row_group(rg).num_rows
             if acc + n > row:
                 key = (rel, rg)
-                cached_key, tbl = _STATE["rg_cache"]
+                cached_key, tbl = _STATE.get("rg_cache", (None, None))
                 if cached_key != key:
                     tbl = pf.read_row_group(rg, columns=["audio"])
                     _STATE["rg_cache"] = (key, tbl)

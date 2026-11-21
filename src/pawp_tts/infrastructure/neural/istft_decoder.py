@@ -9,7 +9,7 @@ from pawp_tts.infrastructure.neural.convnext import ConvNeXt1DBlock
 
 
 class StreamingConvNeXtISTFTDecoder(nn.Module):
-    """Vocos/sanoTTS-style ConvNeXt1D magnitude+phase predictor followed by iSTFT."""
+    """Vocos-style ConvNeXt1D magnitude+phase predictor followed by iSTFT."""
 
     hann_window: torch.Tensor
     spec_mask: torch.Tensor

@@ -46,6 +46,7 @@ from pawp_tts.infrastructure.neural.losses import (
 from pawp_tts.infrastructure.persistence.config_loader import load_student_config
 
 HOP = 240
+MEL_MEAN, MEL_STD = -5.0, 2.5  # approx. log-mel statistics, used only to condition the aligner
 
 
 class CheckpointManager:
@@ -69,12 +70,16 @@ class CachedFeatureDataset(Dataset[dict[str, torch.Tensor]]):
                 continue
             for it in json.loads(idx_path.read_text()):
                 it["path"] = str(Path(root) / sp / it["file"])
+                dur_p = Path(root) / "durations" / sp / (Path(it["file"]).stem + ".npy")
+                if dur_p.exists():
+                    it["dur_path"] = str(dur_p)
                 self.index.append(it)
 
     def __len__(self) -> int:
         return len(self.index)
 
     def __getitem__(self, i: int) -> dict[str, torch.Tensor]:
+        dur_path = self.index[i].get("dur_path")
         with np.load(self.index[i]["path"]) as d:
             mel = d["log_mel"].astype(np.float32)
             t = mel.shape[0]
@@ -91,6 +96,11 @@ class CachedFeatureDataset(Dataset[dict[str, torch.Tensor]]):
                 "waveform": torch.from_numpy(wav),
                 "speaker": torch.tensor(int(d["speaker"][0])),
                 "loss_weight": torch.tensor(float(d["loss_weight"][0])),
+                **(
+                    {"durations": torch.from_numpy(np.load(dur_path).astype(np.float32))}
+                    if dur_path
+                    else {}
+                ),
             }
 
 
@@ -190,6 +200,7 @@ class BilingualStudentTrainer:
         self.target_idx = speakers[target_speaker]
         self.cfg = replace(load_student_config(self.config_path), num_speakers=len(speakers))
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
+        self.prosody_free_prob = 0.0
 
     # ---------------------------------------------------------------- core step
     def _forward(
@@ -202,10 +213,14 @@ class BilingualStudentTrainer:
         n_max, t_max = b["phoneme_ids"].shape[1], b["log_mel"].shape[1]
         text_mask = _seq_mask(b["text_lens"], n_max)
         frame_mask = _seq_mask(b["mel_lens"], t_max)
-        prior = beta_binomial_log_prior(b["text_lens"], b["mel_lens"], n_max, t_max)
-        log_attn, _ = aligner(b["phoneme_ids"], b["lang_ids"], b["log_mel"], text_mask, prior)
-        hard = monotonic_alignment_search(log_attn.detach(), b["text_lens"], b["mel_lens"])
-        durs = hard.sum(1)  # [B, N]
+        # Exposure to predicted prosody: on a share of training steps the acoustic network is
+        # conditioned on its own predicted F0/energy (as at inference) instead of ground truth.
+        free_prosody = model.training and random.random() < self.prosody_free_prob
+        if "durations" in b:  # precomputed CTC forced-alignment durations
+            durs = b["durations"]
+            align_l: dict[str, torch.Tensor] = {}
+        else:
+            _, _, durs, align_l = self._align(aligner, b, text_mask)
         out = model(
             phoneme_ids=b["phoneme_ids"],
             lang_ids=b["lang_ids"],
@@ -215,8 +230,8 @@ class BilingualStudentTrainer:
             speaker_ids=b["speaker"],
             target_durations=durs,
             max_frames=t_max,
-            target_pitch_voicing=b["pitch_voicing"],
-            target_energy=b["log_energy"],
+            target_pitch_voicing=None if free_prosody else b["pitch_voicing"],
+            target_energy=None if free_prosody else b["log_energy"],
         )
         t_out = out.mel.shape[1]
         fm = frame_mask[:, :t_out]
@@ -241,10 +256,34 @@ class BilingualStudentTrainer:
                 fm,
             ),
             "energy": _masked_mean((out.energy.float() - b["log_energy"][:, :t_out]).abs(), fm),
-            "ctc": forward_sum_loss(log_attn, b["text_lens"], b["mel_lens"]),
-            "bin": binarization_loss(hard, log_attn),
+            **align_l,
         }
         return out, losses
+
+    @staticmethod
+    def _align(
+        aligner: AlignmentEncoder, b: dict[str, torch.Tensor], text_mask: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict[str, torch.Tensor]]:
+        """Aligner in full FP32 on normalized mel; returns hard durations + losses + health."""
+        n_max, t_max = b["phoneme_ids"].shape[1], b["log_mel"].shape[1]
+        with torch.autocast(b["log_mel"].device.type, enabled=False):
+            prior = beta_binomial_log_prior(b["text_lens"], b["mel_lens"], n_max, t_max)
+            mel_n = (b["log_mel"].float() - MEL_MEAN) / MEL_STD
+            log_attn, _ = aligner(b["phoneme_ids"], b["lang_ids"], mel_n, text_mask, prior)
+            hard = monotonic_alignment_search(log_attn.detach(), b["text_lens"], b["mel_lens"])
+            durs = hard.sum(1)  # [B, N]
+            losses = {
+                "ctc": forward_sum_loss(log_attn, b["text_lens"], b["mel_lens"]),
+                "bin": binarization_loss(hard, log_attn),
+            }
+        # health: share of real tokens squeezed to 1 frame (collapse -> close to 1.0)
+        inner = text_mask.clone()
+        inner[:, 0] = False
+        inner[torch.arange(inner.shape[0]), b["text_lens"] - 1] = False
+        losses["dur_one_frac"] = ((durs == 1) & inner).float().sum() / inner.float().sum().clamp(
+            min=1.0
+        )
+        return log_attn, hard, durs, losses
 
     @property
     def dur_is_log(self) -> bool:
@@ -286,7 +325,11 @@ class BilingualStudentTrainer:
         train_splits: tuple[str, ...] = ("train", "train_extra"),
         replay_items: int = 0,
         init_from: str | Path | None = None,
+        aligner_warmup: int = 0,
+        fresh_aligner: bool = False,
+        prosody_free_prob: float = 0.0,
     ) -> dict[str, float | int | str]:
+        self.prosody_free_prob = prosody_free_prob
         torch.manual_seed(seed)
         random.seed(seed)
         dev = self.device
@@ -357,7 +400,8 @@ class BilingualStudentTrainer:
             new[n:] = old.mean(0, keepdim=True)  # new voices start at the mean speaker
             src = {**src, "speaker_emb.weight": new}
             model.load_state_dict(src, strict=True)
-            aligner.load_state_dict(st["aligner"])
+            if not fresh_aligner:
+                aligner.load_state_dict(st["aligner"])
             mpd.load_state_dict(st["mpd"])
             mrd.load_state_dict(st["mrd"])
             print(
@@ -444,6 +488,39 @@ class BilingualStudentTrainer:
                 if step >= steps:
                     break
                 b = {k: v.to(dev, non_blocking=True) for k, v in batch.items()}
+                if step < aligner_warmup:  # aligner-only phase (fast; no acoustic model)
+                    tmask = _seq_mask(b["text_lens"], b["phoneme_ids"].shape[1])
+                    _, _, _, L = self._align(aligner, b, tmask)
+                    a_total = L["ctc"] + (0.3 * L["bin"] if step >= bin_start else 0.0)
+                    opt_g.zero_grad(set_to_none=True)
+                    a_total.backward()  # type: ignore[no-untyped-call]
+                    gn = torch.nn.utils.clip_grad_norm_(aligner.parameters(), 10.0)
+                    opt_g.step()
+                    sched_g.step()
+                    step += 1
+                    run_steps += 1
+                    for k, v in L.items():
+                        acc[k] = acc.get(k, 0.0) + float(v.detach())
+                    acc["gnorm"] = acc.get("gnorm", 0.0) + float(gn)
+                    if step % log_every == 0:
+                        rec = {
+                            "step": step,
+                            "phase": "aligner_warmup",
+                            **{k: round(v / log_every, 4) for k, v in acc.items()},
+                        }
+                        acc = {}
+                        print(json.dumps(rec), flush=True)
+                        if wb is not None:
+                            wb.log(
+                                {k: v for k, v in rec.items() if k not in ("step", "phase")},
+                                step=step,
+                            )
+                        if log_fh:
+                            log_fh.write(json.dumps(rec) + "\n")
+                            log_fh.flush()
+                    if step == aligner_warmup:
+                        save_state()
+                    continue
                 with torch.autocast(dev.type, dtype=torch.bfloat16, enabled=use_bf16):
                     out, L = self._forward(model, aligner, b, step)
                     wav_len = b["mel_lens"] * HOP
@@ -460,8 +537,8 @@ class BilingualStudentTrainer:
                         + L["pitch"]
                         + 0.5 * L["voicing"]
                         + L["energy"]
-                        + L["ctc"]
-                        + (0.3 * L["bin"] if step >= bin_start else 0.0)
+                        + L.get("ctc", 0.0)
+                        + (0.3 * L["bin"] if (step >= bin_start and "bin" in L) else 0.0)
                     )
                     if step >= gan_start:
                         fake_s, real_s = self._wav_segments(pred_w, real_w, b["mel_lens"], 16_384)
@@ -483,9 +560,8 @@ class BilingualStudentTrainer:
                         g_total = g_total + adv + 2.0 * fmatch
                 opt_g.zero_grad(set_to_none=True)
                 g_total.backward()  # type: ignore[no-untyped-call]
-                gn = torch.nn.utils.clip_grad_norm_(
-                    list(model.parameters()) + list(aligner.parameters()), 5.0
-                )
+                gn = torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+                torch.nn.utils.clip_grad_norm_(aligner.parameters(), 10.0)
                 opt_g.step()
                 sched_g.step()
                 sched_d.step()
@@ -608,7 +684,7 @@ class BilingualStudentTrainer:
             b = {k: v.to(self.device) for k, v in batch.items()}
             with torch.autocast(self.device.type, dtype=torch.bfloat16, enabled=use_bf16):
                 _, L = self._forward(model, aligner, b, 0)
-            for k in ("mel", "dur", "pitch", "voicing", "energy", "ctc"):
+            for k in ("mel", "dur", "pitch", "voicing", "energy"):
                 tot[f"val_{k}"] = tot.get(f"val_{k}", 0.0) + float(L[k])
             n += 1
         model.train()
