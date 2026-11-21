@@ -286,6 +286,7 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 ## EXP-009: Agent-Driven Weight-Space Programming on `PAWP-1.5M` (Zero Training)
 
 - **Date:** 2026-11-21 · **Status:** Completed & Verified
+- **Weight-Space Programming Agent:** Gemini 4 Neon (autonomous `inspect -> diagnose -> edit -> verify` loop; zero gradient descent)
 - **Hypothesis:** Following the weight-space programming loop (`inspect -> diagnose -> edit -> verify`) on the trained `PAWP-1.5M` target-voice checkpoint (`exp008/best.safetensors`), surgical zero-training edits guided by weight-delta inspection, causal module localization, and Nepali-orthogonal activation null-space projection can recover English and code-mixed articulation lost during Nepali-heavy fine-tuning while preserving target-voice Nepali quality (`9.93% WER`) and beating equal-norm random controls.
 - **Step 1 (Inspect):** Compared all 263 matching tensors between `exp007/latest.safetensors` (EN `3.14%`, NE `12.02%`) and `exp008/best.safetensors` (EN `5.03%`, NE `9.93%`, Mix `11.99%`). Largest relative shifts occurred in `duration_predictor.block1/2.pw.weight` (`24.4%` / `22.1%`), `decoder.head.weight` (`22.8%`), and English low-rank residuals `*.u_en / *.v_en` (`18.5% – 21.1%`).
 - **Step 2 (Causal Module Localization, Zero Training):**
