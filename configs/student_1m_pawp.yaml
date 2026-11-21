@@ -1,0 +1,42 @@
+model_name: pawp-1m-shared-basis
+target_budget: 1000000
+sample_rate: 24000
+hop_length: 240
+n_fft: 1024
+n_mels: 80
+
+vocab_size: 128
+num_languages: 4
+num_stress_levels: 4
+num_boundary_flags: 4
+num_speakers: 1
+
+d_model: 128
+enc_layers: 4
+enc_ff: 256
+enc_kernel: 5
+enc_lookahead: 1
+
+duration_hidden: 96
+duration_kernel: 3
+pitch_hidden: 96
+pitch_kernel: 5
+energy_hidden: 64
+energy_kernel: 5
+
+acoustic_layers: 4
+acoustic_ff: 256
+acoustic_kernel: 7
+acoustic_lookahead: 1
+
+residual_rank: 8
+num_shared_bases: 2
+layer_residual_rank: 16
+use_articulatory_conditioning: true
+
+decoder_dim: 160
+decoder_ff: 320
+decoder_layers: 3
+decoder_kernel: 7
+decoder_lookahead: 1
+istft_bins: 513
