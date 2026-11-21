@@ -31,6 +31,7 @@ data/splits/*.jsonl
 *.ogg
 *.tar
 *.parquet
+*.zip
 
 # Checkpoints & Ephemeral Artifacts (Retain only explicit final release weights)
 artifacts/checkpoints/*
@@ -50,3 +51,6 @@ artifacts/cache/
 
 # Experiment tracking local run files
 wandb/
+
+# Internal agent handover (contains internal details)
+HANDOVER.md
