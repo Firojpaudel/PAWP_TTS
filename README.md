@@ -1,6 +1,27 @@
+<div align="center">
+
 # PAWP-TTS
 
 **Phoneme-Aware Weight Programming for Ultra-Compact Bilingual (English–Nepali) Neural Speech Synthesis**
+
+<p>
+  <a href="https://huggingface.co/spaces/Firoj112/pawp-tts-demo"><img src="https://img.shields.io/badge/Live_Audio_Demo-Hugging_Face_Space-2563EB?style=for-the-badge&logo=huggingface&logoColor=white" alt="Live Audio Demo"></a>
+  <a href="https://huggingface.co/Firoj112/pawp-tts-1.5m"><img src="https://img.shields.io/badge/Model-PAWP--1.5M_(Polished)-0F172A?style=for-the-badge&logo=huggingface&logoColor=FFD21E" alt="PAWP-1.5M Model"></a>
+  <a href="https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp"><img src="https://img.shields.io/badge/Model-PAWP--1.5M--WSP-0F172A?style=for-the-badge&logo=huggingface&logoColor=FFD21E" alt="PAWP-1.5M-WSP Model"></a>
+</p>
+
+<p>
+  <img src="https://img.shields.io/badge/Params-1.49M_(5.98_MB)-1E293B?style=flat-square" alt="Parameters">
+  <img src="https://img.shields.io/badge/Nepali_WER-9.93%25_(Beats_Human_GT)-16A34A?style=flat-square" alt="Nepali WER">
+  <img src="https://img.shields.io/badge/Code--Mix_WER-9.93%25-16A34A?style=flat-square" alt="Code-Mix WER">
+  <img src="https://img.shields.io/badge/ONNX_CPU_TTFA-1.11_ms-0284C7?style=flat-square" alt="ONNX TTFA">
+  <img src="https://img.shields.io/badge/Sample_Rate-24_kHz-475569?style=flat-square" alt="Sample Rate">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-334155?style=flat-square" alt="License">
+</p>
+
+</div>
+
+---
 
 PAWP-TTS investigates how few neural parameters are required for natural, streaming, bilingual **English**, **Nepali**, and **English–Nepali code-mixed** speech when deterministic linguistic knowledge is moved to the frontend and an AI agent (**Gemini 4 Neon**) can inspect and program trained network weights directly ([weight-space programming](https://rikiyat.github.io/blog/weight-space-programming/)).
 
@@ -21,18 +42,20 @@ The deployed `PAWP-1.5M` inference graph — **neural iSTFT vocoder included** �
 
 ## Audio Samples (24 kHz, Unedited Outputs)
 
-**Instant Browser Playback (Zero Buffering):** [Listen to all samples on Hugging Face Spaces (`Firoj112/pawp-tts-demo`)](https://huggingface.co/spaces/Firoj112/pawp-tts-demo)
+<p align="center">
+  <a href="https://huggingface.co/spaces/Firoj112/pawp-tts-demo"><img src="https://img.shields.io/badge/Open_Instant_Audio_Player-Hugging_Face_Space_(Zero_Buffering)-2563EB?style=for-the-badge&logo=huggingface&logoColor=white" alt="Open Instant Audio Player"></a>
+</p>
 
 All samples below were synthesized directly from our default polished checkpoint ([Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m)):
 
-| Language / Type | Text | Direct 24 kHz WAV |
+| Language / Type | Text | 24 kHz Audio |
 | :--- | :--- | :---: |
-| Nepali (Natural) | नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्। | [`ne_nature.wav` (4.9s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_nature.wav) |
-| Nepali (Phonology: gemination & `/s/`) | पाता र पत्ता अनि शहर र सहरको उच्चारण मानक नेपालीमा स्पष्ट सुनिन्छ। | [`ne_phonology.wav` (4.8s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_phonology.wav) |
-| English (Technical) | Neural speech synthesis can now run completely on edge devices with very low latency. | [`en_edge.wav` (5.5s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_edge.wav) |
-| English (Expressive) | The sudden change in the weather made the evening walk surprisingly refreshing. | [`en_weather.wav` (4.6s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_weather.wav) |
-| Code-Mixed (Everyday) | Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु। | [`codemix_flight.wav` (5.3s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_flight.wav) |
-| Code-Mixed (Technical) | आज हाम्रो team ले नयाँ AI model deploy गर्‍यो, performance एकदमै smooth देखिन्छ। | [`codemix_deploy.wav` (5.4s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_deploy.wav) |
+| Nepali (Natural) | नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्। | [![Play WAV](https://img.shields.io/badge/Play_WAV-4.9s-1F6FEB?style=flat-square)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_nature.wav) |
+| Nepali (Phonology: gemination & `/s/`) | पाता र पत्ता अनि शहर र सहरको उच्चारण मानक नेपालीमा स्पष्ट सुनिन्छ। | [![Play WAV](https://img.shields.io/badge/Play_WAV-4.8s-1F6FEB?style=flat-square)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_phonology.wav) |
+| English (Technical) | Neural speech synthesis can now run completely on edge devices with very low latency. | [![Play WAV](https://img.shields.io/badge/Play_WAV-5.5s-1F6FEB?style=flat-square)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_edge.wav) |
+| English (Expressive) | The sudden change in the weather made the evening walk surprisingly refreshing. | [![Play WAV](https://img.shields.io/badge/Play_WAV-4.6s-1F6FEB?style=flat-square)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_weather.wav) |
+| Code-Mixed (Everyday) | Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु। | [![Play WAV](https://img.shields.io/badge/Play_WAV-5.3s-1F6FEB?style=flat-square)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_flight.wav) |
+| Code-Mixed (Technical) | आज हाम्रो team ले नयाँ AI model deploy गर्‍यो, performance एकदमै smooth देखिन्छ। | [![Play WAV](https://img.shields.io/badge/Play_WAV-5.4s-1F6FEB?style=flat-square)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_deploy.wav) |
 
 Additional `WSP-E3` samples with native inline audio players are also hosted on [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp).
 
