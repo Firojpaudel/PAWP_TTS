@@ -6,6 +6,7 @@ import csv
 import json
 import logging
 import re
+import warnings
 from pathlib import Path
 
 from pawp_tts.domain.phonology.nepali_rules import (
@@ -15,8 +16,9 @@ from pawp_tts.domain.phonology.nepali_rules import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LEXICON_PATH = Path("data/lexicon/ne_lexicon_v1/ne_lexicon.tsv")
-DEFAULT_HETERONYMS_PATH = Path("data/lexicon/ne_lexicon_v1/ne_heteronyms.tsv")
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+DEFAULT_LEXICON_PATH = _REPO_ROOT / "data/lexicon/ne_lexicon_v1/ne_lexicon.tsv"
+DEFAULT_HETERONYMS_PATH = _REPO_ROOT / "data/lexicon/ne_lexicon_v1/ne_heteronyms.tsv"
 
 _CACHED_LEXICON: dict[str, tuple[str, ...]] | None = None
 _CACHED_HETERONYM_WORDS: frozenset[str] | None = None
@@ -65,7 +67,14 @@ class NepaliRuleG2PAdapter:
         self._lexicon: dict[str, tuple[str, ...]] = {}
         if lexicon_path is not None:
             lpath = Path(lexicon_path)
-            if lpath.exists():
+            if not lpath.exists():
+                warnings.warn(
+                    f"Nepali lexicon not found at {lpath}; falling back to rules only "
+                    "(pronunciations will differ from lexicon-enabled runs).",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+            else:
                 if lpath == DEFAULT_LEXICON_PATH:
                     if _CACHED_LEXICON is None:
                         _CACHED_LEXICON = _load_lexicon_tsv(lpath)

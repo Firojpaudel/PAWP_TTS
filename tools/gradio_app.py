@@ -113,4 +113,4 @@ demo = gr.Interface(
 
 if __name__ == "__main__":
     port = int(os.environ.get("PAWP_GRADIO_PORT", "7861"))
-    demo.launch(server_name="0.0.0.0", server_port=port, share=False)
+    demo.launch(server_name=os.environ.get("PAWP_DEMO_HOST", "127.0.0.1"), server_port=port, share=False)

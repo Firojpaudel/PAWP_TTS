@@ -12,8 +12,8 @@
 
 <p>
   <img src="https://img.shields.io/badge/Params-1.49M_(5.98_MB)-1E293B?style=flat-square" alt="Parameters">
-  <img src="https://img.shields.io/badge/Nepali_WER-9.93%25_(Beats_Human_GT)-16A34A?style=flat-square" alt="Nepali WER">
-  <img src="https://img.shields.io/badge/Code--Mix_WER-9.93%25-16A34A?style=flat-square" alt="Code-Mix WER">
+  <img src="https://img.shields.io/badge/Nepali_WER-9.93%25_(held--out_ASR,_n%3D30)-16A34A?style=flat-square" alt="Nepali WER">
+  <img src="https://img.shields.io/badge/Code--Mix_WER-9.93%25_(preliminary)-F59E0B?style=flat-square" alt="Code-Mix WER">
   <img src="https://img.shields.io/badge/ONNX_CPU_TTFA-1.11_ms-0284C7?style=flat-square" alt="ONNX TTFA">
   <img src="https://img.shields.io/badge/Sample_Rate-24_kHz-475569?style=flat-square" alt="Sample Rate">
   <img src="https://img.shields.io/badge/License-Apache_2.0-334155?style=flat-square" alt="License">
@@ -36,7 +36,7 @@ The deployed `PAWP-1.5M` inference graph — **neural iSTFT vocoder included** �
 | Release | Hugging Face | Footprint | Highlights |
 | :--- | :--- | :---: | :--- |
 | **`PAWP-1.5M` Polished Default** (`EXP-012`) | [Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m) | `5.98 MB` FP32 / `5.16 MB` ONNX | Smoothest single-speaker voice timbre (`4.86%` EN, `11.41%` NE, `10.99%` Code-Mix WER) |
-| **`PAWP-1.5M` Weight-Space Programmed** (`EXP-009`, `WSP-E3`) | [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) | `5.98 MB` FP32 / `5.16 MB` ONNX | Zero-training surgical edit by Gemini 4 Neon (`3.3%` params edited): `9.93%` NE WER, `9.93%` Code-Mix WER, `0.00%` NE drift |
+| **`PAWP-1.5M` Weight-Space Programmed** (`EXP-009`, `WSP-E3`) | [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) | `5.98 MB` FP32 / `5.16 MB` ONNX | Preliminary zero-training weight transplant by Gemini 4 Neon (test-selected; see AUDIT-002) (`3.3%` params edited): `9.93%` NE WER, `9.93%` Code-Mix WER, `0.00%` NE drift |
 
 ---
 
@@ -70,11 +70,11 @@ Scored against an independent speech recognizer alongside the human studio groun
 | Model / Checkpoint | English WER / CER (`n=30`) | Nepali WER / CER (`n=30`) | Code-Mixed WER / CER (`n=9`) | Internal Contrast Smoke Test (77 pairs)* |
 | :--- | :---: | :---: | :---: | :---: |
 | Human Studio Ground-Truth Floor | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | — |
-| `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | `100.0%` (`0%` `/ʃ/` symbol bleed) |
-| `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | `100.0%` (`0%` `/ʃ/` symbol bleed) |
-| **`PAWP-1.5M` Polished Default (+10k, [EXP-012](docs/EXPERIMENTS.md))** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | **`100.0%`** (`0%` `/ʃ/` symbol bleed) |
-| **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | **`100.0%`** (`0%` `/ʃ/` symbol bleed) |
-| `PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md)) | `4.73% / 2.02%` | `10.09% / 1.93%` | `11.65% / 4.90%` | `100.0%` (`0%` `/ʃ/` symbol bleed) |
+| `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | 77/77 (internal smoke test) |
+| `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | 77/77 (internal smoke test) |
+| **`PAWP-1.5M` Polished Default (+10k, [EXP-012](docs/EXPERIMENTS.md))** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | 77/77 (internal smoke test) |
+| **`PAWP-1.5M` + WSP `E3` (zero-training, test-selected, preliminary; [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | 77/77 (internal smoke test) |
+| `PAWP-1.5M` + WSP `Null-64` (zero-training, test-selected, preliminary; [EXP-009](docs/EXPERIMENTS.md)) | `4.73% / 2.02%` | `10.09% / 1.93%` | `11.65% / 4.90%` | 77/77 (internal smoke test) |
 
 *\*Internal G2P + non-silent/mel-differs phonological smoke test across 77 minimal pairs (NOT the published NepTTS-Bench listening/ASR benchmark; see `AUDIT-001` in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)).*
 
@@ -96,7 +96,7 @@ Folded monolingual ONNX streaming graphs (`5.16 MB` FP32 each) match PyTorch str
 | :--- | :--- | :--- |
 | M1 | Clean Architecture bootstrap, unified 128-token EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
 | M2 | Bilingual manifests and leak-free splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
-| M3 | 105,868-word Kathmandu lexicon (`300/300` native gold pass), CTC forced-alignment durations, 92k base + 20k target-voice FT + 10k phase polish | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md), [EXP-012](docs/EXPERIMENTS.md)) |
+| M3 | 105,868-word Kathmandu lexicon (300/300 lexicon self-consistency check; native gold set pending), CTC forced-alignment durations, 92k base + 20k target-voice FT + 10k phase polish | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md), [EXP-012](docs/EXPERIMENTS.md)) |
 | M4 | Agent-driven weight-space programming (`EXP-009`, Gemini 4 Neon), zero-shot compression frontier (`EXP-010`), and `PAWP-300K` (`281K` unique params, `0.28 MB` INT8) shared-basis training (`EXP-011`) | **in progress** (`EXP-011` training) |
 | M5 | Trained ONNX FP32 export & parity verification, public Hugging Face model cards & audio releases | **done** ([pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m), [pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp)) |
 

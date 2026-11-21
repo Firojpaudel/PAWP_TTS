@@ -61,7 +61,7 @@ def _cmd_frontend(container: AppContainer, args: argparse.Namespace) -> int:
         if "ʃ" in sib_seq.symbols:
             raise AssertionError("Hindi sibilant /ʃ/ bleed detected in Nepali frontend!")
 
-        # Validate 300-word native gold Kathmandu pronunciation sample
+        # Lexicon self-consistency check (300 entries sampled from the lexicon; not a native gold set)
         gold_passed = 0
         gold_failures: list[str] = []
         for g_case in GOLD_300_CASES:
@@ -75,7 +75,7 @@ def _cmd_frontend(container: AppContainer, args: argparse.Namespace) -> int:
                     f"{g_case.word} ({g_case.pos}): exp={' '.join(g_case.expected_ipa)} got={' '.join(g_syms)}"
                 )
         print(
-            f"[Gold 300 Native Sample] {gold_passed}/{len(GOLD_300_CASES)} passed "
+            f"[Lexicon self-consistency 300] {gold_passed}/{len(GOLD_300_CASES)} passed "
             f"({gold_passed / len(GOLD_300_CASES) * 100:.1f}%)"
         )
         if gold_failures:

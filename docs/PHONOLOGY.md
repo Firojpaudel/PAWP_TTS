@@ -42,8 +42,8 @@ Variant choices follow standard Kathmandu Nepali.
 ## Evaluation & Validation Suites
 
 - **Unit Regression Tests:** `tests/unit/test_nepali_phonology.py` holds regression tests for every implemented phonological rule (sibilant merger, alveolar affricates, 4-way laryngeal stops, retroflex flapping, gemination, breathy lengthening, and clitic code-mixing).
-- **Gold Native Evaluation (`make frontend-validate`):** `domain/evaluation/frontend_validation.py` and `tests/unit/test_frontend_validation.py` hold a 300-word native Kathmandu gold evaluation suite (covering core closed-class, inflected verbs, nouns, and gazetteer terms), validated at **100.0% accuracy** (300/300).
-- **Pronunciation Lexicon (`ne_lexicon_v1`):** Integrated 105,868-word permissive Kathmandu lexicon (`data/lexicon/ne_lexicon_v1/`) with 100% symbol compliance with our unified IPA inventory (0 missing tokens across 936,987 symbols).
+- **Lexicon self-consistency check (`make frontend-validate`):** `domain/evaluation/frontend_validation.py` holds 300 entries sampled from the lexicon itself, so it is a regression check, not a native gold benchmark. A native-annotated gold set independent of the lexicon is pending.
+- **Pronunciation Lexicon (`ne_lexicon_v1`):** Integrated 105,868-word permissive Kathmandu lexicon (≈99% rule/paradigm-generated; ≈995 cross-checked; not native-verified) (`data/lexicon/ne_lexicon_v1/`) with 100% symbol compliance with our unified IPA inventory (0 missing tokens across 936,987 symbols).
 - **Context Heteronym Disambiguation:** Integrated 152 context-dependent readings across 76 homographs (e.g., verbal infinitive in `-न` like `दिन/लिन/खान/जान` vs nominal readings) mediated through domain syntactic lookahead.
 - **Planned:**
   - native-recording acoustic cross-check using the training-only CTC phoneme recognizer.

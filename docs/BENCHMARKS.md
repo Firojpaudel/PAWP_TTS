@@ -9,7 +9,6 @@
 | `PAWP-300K` (`configs/student_300k_pawp.yaml`) | `328,158` | **`281,078`** | `309,702` | `1.12 MB / 0.56 MB / 0.28 MB` | `300,000` | Decoder-centric (`52.6%`), `n_fft=512`, `K=2` shared bases + `28`-dim articulatory conditioning (`20.96 MMAC/s`, `EXP-011` training) |
 | `OmniVoice` Teacher (LM + Audio Tokenizer) | `1,015,378,394` | `1,015,378,394` | `1,015,378,394` | `~2.84 GB` (BF16+F32) | — | Zero-shot 24 kHz teacher baseline (`813.98M` LM + `201.40M` tokenizer) |
 | `PiVo-1.4M` (external reference) | `1,401,562` | `1,401,562` | `1,401,562` | `5.6 MB` FP32 | — | English-only, 16 kHz FARGAN vocoder |
-| `sanoTTS` `heart-nano` (external reference) | `294,279` | `294,279` | `294,279` | `337 KB` INT8 | — | English-only, 24 kHz ConvNeXt1D+iSTFT |
 
 ## 2. Bilingual Pronunciation & Linguistic Fidelity (`WER` / `CER` / Contrast Checks)
 
@@ -49,9 +48,9 @@
 
 | Metric / Evaluation Component | Measurement | Standard / Reference | Status |
 |---|---:|---|---|
-| Full Nepali Lexicon Coverage (`ne_lexicon.tsv`) | **105,868 words** | NFC-normalized standard Kathmandu Nepali | Verified (0 missing symbols) |
+| Full Nepali Lexicon Coverage (`ne_lexicon.tsv`) | **105,868 words** | NFC-normalized standard Kathmandu Nepali; ≈99% rule/paradigm-generated (≈995 cross-checked) | Symbol-checked (0 missing symbols); not native-verified |
 | Unified Phoneme Inventory Compliance | **100.0%** (936,987 / 936,987 tokens) | Unified 128-token phonological inventory | Verified (0 unknown tokens) |
 | Context Heteronym Entries (`ne_heteronyms.tsv`) | **152 readings** across 76 words | Grammatical lookahead (infinitives vs nominals) | Verified |
-| Gold 300 Native Kathmandu Validation (`make frontend-validate`) | **100.0%** (300 / 300 passed) | Native-verified benchmark sample (seed=42) | Verified clean pass |
+| Lexicon self-consistency check (`make frontend-validate`) | **100.0%** (300 / 300) | 300 entries sampled from the same lexicon (seed=42); not native-verified | Regression check only |
 | In-Process English G2P (`libespeak-ng.so.1` via ctypes) | `< 0.20 ms` / sentence | Zero-word hardcoding, thread-safe | Verified |
 | Nepali Lexicon Startup & Cache Latency | `~0.20 s` (one-time) | Module-level cached dict (~10.1 MB RAM) | Sub-millisecond lookup |
