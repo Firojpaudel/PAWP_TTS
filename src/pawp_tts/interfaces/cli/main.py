@@ -11,6 +11,9 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+import soundfile as sf
+import torch
+
 from pawp_tts.domain.entities.models import ExperimentRecord, LanguageCode
 from pawp_tts.domain.evaluation.frontend_validation import GOLD_300_CASES
 from pawp_tts.domain.ports.interfaces import AsrEvaluatorPort
@@ -19,6 +22,7 @@ from pawp_tts.infrastructure.data.bulk_cache import (
     build_feature_cache,
 )
 from pawp_tts.infrastructure.evaluation.benchmark_suite import (
+    _synthesize_utterance,
     run_evaluation_suite,
     run_heldout_asr_eval,
 )
@@ -29,7 +33,7 @@ from pawp_tts.infrastructure.neural.bilingual_tts import PAWPBilingualTTS
 from pawp_tts.infrastructure.persistence.artifact_pruner import prune_artifacts
 from pawp_tts.infrastructure.persistence.config_loader import load_student_config
 from pawp_tts.infrastructure.persistence.ledger import JsonlExperimentLedger, current_git_sha
-from pawp_tts.infrastructure.training.trainer import BilingualStudentTrainer
+from pawp_tts.infrastructure.training.trainer import BilingualStudentTrainer, CheckpointManager
 from pawp_tts.interfaces.container import AppContainer, build_container
 
 
@@ -413,6 +417,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_ev.add_argument("--exp-id", type=str, default="exp002-eval")
     p_ev.add_argument("--log-ledger", action="store_true")
 
+    p_sy = sub.add_parser("synth", help="Synthesize text to a 24 kHz WAV audio file")
+    p_sy.add_argument(
+        "--text", "-t", required=True, help="Text to synthesize (EN, NE, or code-mixed)"
+    )
+    p_sy.add_argument(
+        "--output", "-o", default="output.wav", help="Output WAV path (default: output.wav)"
+    )
+    p_sy.add_argument("--checkpoint", "-c", default=None, help="Path to .safetensors checkpoint")
+    p_sy.add_argument(
+        "--config", default="configs/student_1_5m.yaml", help="Path to student config YAML"
+    )
+    p_sy.add_argument("--speaker-id", type=int, default=None, help="Optional integer speaker ID")
+    p_sy.add_argument("--device", default=None, help="Execution device (cuda or cpu)")
+
     return parser
 
 
@@ -573,6 +591,40 @@ def _cmd_teacher_generate(_container: AppContainer, args: argparse.Namespace) ->
     return 0
 
 
+def _cmd_synth(container: AppContainer, args: argparse.Namespace) -> int:
+    ckpt: str | None = args.checkpoint
+    if not ckpt:
+        candidates = [
+            Path("artifacts/checkpoints/exp007/best.safetensors"),
+            Path("artifacts/checkpoints/exp007/latest.safetensors"),
+            Path("artifacts/checkpoints/best.safetensors"),
+        ]
+        for c in candidates:
+            if c.exists():
+                ckpt = str(c)
+                break
+    if not ckpt or not Path(ckpt).exists():
+        raise SystemExit(f"No checkpoint found at {ckpt}")
+
+    cfg = load_student_config(args.config)
+    device = torch.device(args.device or ("cuda" if torch.cuda.is_available() else "cpu"))
+    model = PAWPBilingualTTS(cfg).to(device).eval()
+    CheckpointManager.load(model, ckpt)
+
+    speaker_id: int | None = args.speaker_id
+    if speaker_id is None and model.speaker_emb is not None:
+        speaker_id = 0
+
+    _, _, wav, _ = _synthesize_utterance(
+        model, container.phonemize, args.text, device, speaker_id=speaker_id
+    )
+    out_path = Path(args.output)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    sf.write(str(out_path), wav, 24000)
+    print(f"Synthesized audio: {out_path} ({len(wav) / 24000:.2f}s, 24 kHz)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint."""
     parser = build_parser()
@@ -594,6 +646,7 @@ def main(argv: list[str] | None = None) -> int:
         "train": _cmd_train,
         "finetune-bilingual": _cmd_finetune_bilingual,
         "eval-suite": _cmd_eval_suite,
+        "synth": _cmd_synth,
     }
     return handlers[args.command](container, args)
 

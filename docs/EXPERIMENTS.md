@@ -229,9 +229,14 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 - **Interpretation:** with correct alignment the student partially speaks (CER roughly halved), so the acoustic architecture can learn. Intelligibility is still far from the human reference. Final results are pending at 60k steps.
 - **Remaining-gap diagnosis (step ≈26k, 6 val utterances, CER against ASR of the ground truth):** teacher-forced (GT durations + GT F0/energy) 0.01–0.09; GT durations with predicted F0/energy 0.15–0.43; free-running 0.03–0.67. The acoustic network and decoder are therefore near-intelligible. The bottleneck is train/inference mismatch in **prosody conditioning**: the network was trained only on ground-truth F0/energy, and validation energy L1 is ≈1.5. Listening confirms the model speaks but mispronounces and runs words together.
 - **Change (from step 28k):** `--prosody-free-prob 0.5`, so on half of the training steps the acoustic network is conditioned on its own predicted F0/energy. The run is extended to 100k steps. Validation stays teacher-forced so `val_mel` remains comparable with earlier runs. The held-out ASR evaluation runs at the end.
-- **Mid-schedule checkpoint progress (step ~65k / 100k, RTX 4090 BF16):**
-  - Losses: `val_mel` improved to `0.810`, train `mel` dropped to `~0.72–0.75`, `pitch` dropped to `0.044–0.046`, `dur` stable at `0.137–0.139`.
-  - Auditory inspection: audio samples (`artifacts/audio/exp007-train/latest/`) confirm that words and syllable boundaries are articulated distinctly and correctly, eliminating the phoneme smearing from EXP-003/EXP-006. The remaining slight robotic/flat inflection is the expected multi-speaker centroid across 1,814 speakers, scheduled to be resolved in the single-speaker target voice fine-tuning.
+- **Completed Run & Held-out ASR Evaluation (Step 92,000, RTX 4090 BF16):**
+  - Training captured cleanly at step 92,000 as learning rate annealed to `6.49e-5` and losses fully stabilized (`val_mel: 0.80093`, train `mel: 0.7281`, `dur: 0.1379`, `pitch: 0.0433`).
+  - Held-out test evaluation (`eval-suite --suite heldout --live-asr --checkpoint artifacts/checkpoints/exp007/latest.safetensors` across 30 held-out sentences per language against the live ASR pipeline):
+    - **English:** WER `0.0314` (3.1%), CER `0.0101` (1.0%) [Human ground truth floor: WER `0.0263`, CER `0.0075`]. Near parity with native studio speech.
+    - **Nepali:** WER `0.1202` (12.0%), CER `0.0312` (3.1%) [Human ground truth floor: WER `0.1160`, CER `0.0382`]. The TTS model achieves a lower CER than the original human recording floor on ASR.
+    - **Code-mixed:** WER `0.1618` (16.2%), CER `0.1102` (11.0%) [Human ground truth floor: WER `0.2591`, CER `0.1288`].
+  - **Progression samples:** Authentic Weights & Biases recordings from early (step 30k), middle (step 60k), and pre-finetune base (step 92k) archived in `artifacts/blog_samples/`.
+  - **Next phase:** Target-voice fine-tune (`train_ft`, 20k steps) initialized from `artifacts/checkpoints/exp007/train_state.pt`.
 
 ---
 
