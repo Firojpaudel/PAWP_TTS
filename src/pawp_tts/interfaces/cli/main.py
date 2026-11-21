@@ -30,6 +30,14 @@ from pawp_tts.infrastructure.evaluation.http_asr_adapter import HttpMultipartAsr
 from pawp_tts.infrastructure.evaluation.latency_profiler import run_latency_benchmarks
 from pawp_tts.infrastructure.inference.streaming import OnnxStreamingExporter
 from pawp_tts.infrastructure.neural.bilingual_tts import PAWPBilingualTTS
+from pawp_tts.infrastructure.pawp.wsp_engine import (
+    build_rank1_wsp_and_controls,
+    evaluate_ctc_per,
+    load_ctc_recognizer,
+    load_manifest_texts,
+    localize_contrast_layers,
+    verify_wsp_on_untouched_test,
+)
 from pawp_tts.infrastructure.persistence.artifact_pruner import prune_artifacts
 from pawp_tts.infrastructure.persistence.config_loader import load_student_config
 from pawp_tts.infrastructure.persistence.ledger import JsonlExperimentLedger, current_git_sha
@@ -434,6 +442,57 @@ def build_parser() -> argparse.ArgumentParser:
     p_sy.add_argument("--speaker-id", type=int, default=None, help="Optional integer speaker ID")
     p_sy.add_argument("--device", default=None, help="Execution device (cuda or cpu)")
 
+    p_wi = sub.add_parser(
+        "wsp-inspect", help="Inspect dev phoneme PER, confusions, and layer circuits"
+    )
+    p_wi.add_argument("--config", type=str, default="configs/student_1_5m.yaml")
+    p_wi.add_argument(
+        "--checkpoint", type=str, default="artifacts/checkpoints/exp012_polish/best.safetensors"
+    )
+    p_wi.add_argument("--ctc-ckpt", type=str, default="artifacts/checkpoints/ctc_aligner.pt")
+    p_wi.add_argument("--dev-manifest", type=str, default="data/manifests/val.jsonl")
+    p_wi.add_argument("--n-dev", type=int, default=150)
+    p_wi.add_argument("--target-sym", type=str, default=None)
+    p_wi.add_argument("--confused-sym", type=str, default=None)
+    p_wi.add_argument("--exp-id", type=str, default="exp013-wsp-inspect")
+    p_wi.add_argument("--log-ledger", action="store_true")
+
+    p_we = sub.add_parser(
+        "wsp-edit", help="Apply localized Rank-1 WSP edit + matched random & FT controls on dev"
+    )
+    p_we.add_argument("--config", type=str, default="configs/student_1_5m.yaml")
+    p_we.add_argument(
+        "--checkpoint", type=str, default="artifacts/checkpoints/exp012_polish/best.safetensors"
+    )
+    p_we.add_argument("--ctc-ckpt", type=str, default="artifacts/checkpoints/ctc_aligner.pt")
+    p_we.add_argument("--dev-manifest", type=str, default="data/manifests/val.jsonl")
+    p_we.add_argument("--n-dev", type=int, default=150)
+    p_we.add_argument("--target-sym", type=str, required=True)
+    p_we.add_argument("--confused-sym", type=str, required=True)
+    p_we.add_argument("--layer", type=str, required=True)
+    p_we.add_argument("--out-dir", type=str, default="artifacts/checkpoints/exp013_wsp")
+    p_we.add_argument("--ft-steps", type=int, default=40)
+    p_we.add_argument("--exp-id", type=str, default="exp013-wsp-edit")
+    p_we.add_argument("--log-ledger", action="store_true")
+
+    p_wv = sub.add_parser(
+        "wsp-verify", help="One-shot verification on untouched test.jsonl with bootstrap CIs"
+    )
+    p_wv.add_argument("--config", type=str, default="configs/student_1_5m.yaml")
+    p_wv.add_argument(
+        "--checkpoint", type=str, default="artifacts/checkpoints/exp012_polish/best.safetensors"
+    )
+    p_wv.add_argument("--wsp-ckpt", type=str, required=True)
+    p_wv.add_argument("--rand-ckpt", type=str, required=True)
+    p_wv.add_argument("--ft-ckpt", type=str, required=True)
+    p_wv.add_argument("--ctc-ckpt", type=str, default="artifacts/checkpoints/ctc_aligner.pt")
+    p_wv.add_argument("--test-manifest", type=str, default="data/manifests/test.jsonl")
+    p_wv.add_argument("--target-sym", type=str, required=True)
+    p_wv.add_argument("--confused-sym", type=str, required=True)
+    p_wv.add_argument("--n-test", type=int, default=300)
+    p_wv.add_argument("--exp-id", type=str, default="exp013-wsp-verify")
+    p_wv.add_argument("--log-ledger", action="store_true")
+
     return parser
 
 
@@ -630,6 +689,138 @@ def _cmd_synth(container: AppContainer, args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_wsp_inspect(container: AppContainer, args: argparse.Namespace) -> int:
+    cfg = load_student_config(args.config)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = PAWPBilingualTTS(cfg).to(device).eval()
+    CheckpointManager.load(model, args.checkpoint)
+    ctc = load_ctc_recognizer(args.ctc_ckpt, device)
+
+    ne_dev = load_manifest_texts(args.dev_manifest, "ne", limit=args.n_dev, seed=42)
+    en_dev = load_manifest_texts(args.dev_manifest, "en", limit=args.n_dev, seed=42)
+    ne_rep = evaluate_ctc_per(model, ctc, container.phonemize, ne_dev, "ne", device)
+    en_rep = evaluate_ctc_per(model, ctc, container.phonemize, en_dev, "en", device)
+
+    print(
+        f"DEV NE PER={ne_rep.per:.4f} (n={ne_rep.num_utterances}, ref={ne_rep.total_ref_phonemes}, "
+        f"S={ne_rep.substitutions}, D={ne_rep.deletions}, I={ne_rep.insertions})"
+    )
+    print("Top NE phoneme confusions (ref -> hyp : count):")
+    for a, b, c in ne_rep.top_confusions[:12]:
+        print(f"  {a} -> {b} : {c}")
+    print(f"DEV EN PER={en_rep.per:.4f} (n={en_rep.num_utterances})")
+
+    target_sym = args.target_sym or (ne_rep.top_confusions[0][0] if ne_rep.top_confusions else "ʈ")
+    confused_sym = args.confused_sym or (
+        ne_rep.top_confusions[0][1] if ne_rep.top_confusions else "t̪"
+    )
+    probes = localize_contrast_layers(
+        model, ctc, container.phonemize, ne_dev, target_sym, confused_sym, device
+    )
+    print(f"\nLayer localization for {target_sym} vs {confused_sym}:")
+    for p in probes:
+        print(
+            f"  {p.layer_name:18s} | probe_acc={p.probe_acc:.3f} | cos_sep={p.cosine_sep:.4f} | "
+            f"causal_flip={p.causal_flip_delta:+.4f}"
+        )
+
+    if args.log_ledger:
+        JsonlExperimentLedger().append(
+            ExperimentRecord(
+                exp_id=args.exp_id,
+                timestamp_utc=datetime.now(UTC).isoformat(),
+                git_sha=current_git_sha(),
+                config_path=args.config,
+                seed=42,
+                hypothesis=f"Inspect dev PER confusions and localize {target_sym} vs {confused_sym}.",
+                metrics={
+                    "dev_ne_per": round(ne_rep.per, 5),
+                    "dev_en_per": round(en_rep.per, 5),
+                    "target_contrast": f"{target_sym}->{confused_sym}",
+                    "top_confusions": json.dumps(ne_rep.top_confusions[:10], ensure_ascii=False),
+                    "probes": json.dumps(
+                        [
+                            {
+                                "layer": p.layer_name,
+                                "acc": round(p.probe_acc, 4),
+                                "cos": round(p.cosine_sep, 4),
+                                "flip": round(p.causal_flip_delta, 4),
+                            }
+                            for p in probes
+                        ]
+                    ),
+                },
+                command="make pawp-inspect",
+            )
+        )
+    return 0
+
+
+def _cmd_wsp_edit(container: AppContainer, args: argparse.Namespace) -> int:
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ne_dev = load_manifest_texts(args.dev_manifest, "ne", limit=args.n_dev, seed=42)
+    res = build_rank1_wsp_and_controls(
+        config_path=args.config,
+        base_ckpt=args.checkpoint,
+        ctc_ckpt=args.ctc_ckpt,
+        phonemize=container.phonemize,
+        dev_texts=ne_dev,
+        target_sym=args.target_sym,
+        confused_sym=args.confused_sym,
+        target_layer_name=args.layer,
+        out_dir=args.out_dir,
+        device=device,
+        ft_steps=args.ft_steps,
+    )
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+    if args.log_ledger:
+        JsonlExperimentLedger().append(
+            ExperimentRecord(
+                exp_id=args.exp_id,
+                timestamp_utc=datetime.now(UTC).isoformat(),
+                git_sha=current_git_sha(),
+                config_path=args.config,
+                seed=42,
+                hypothesis=f"Localized Rank-1 WSP edit on {args.layer}.pw2 for {args.target_sym}->{args.confused_sym}.",
+                metrics={"summary": json.dumps(res, ensure_ascii=False)},
+                command="make pawp-edit",
+            )
+        )
+    return 0
+
+
+def _cmd_wsp_verify(container: AppContainer, args: argparse.Namespace) -> int:
+    res = verify_wsp_on_untouched_test(
+        config_path=args.config,
+        base_ckpt=args.checkpoint,
+        wsp_ckpt=args.wsp_ckpt,
+        rand_ckpt=args.rand_ckpt,
+        ft_ckpt=args.ft_ckpt,
+        ctc_ckpt=args.ctc_ckpt,
+        phonemize=container.phonemize,
+        test_manifest=args.test_manifest,
+        target_sym=args.target_sym,
+        confused_sym=args.confused_sym,
+        n_ne=args.n_test,
+        n_en=args.n_test,
+    )
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+    if args.log_ledger:
+        JsonlExperimentLedger().append(
+            ExperimentRecord(
+                exp_id=args.exp_id,
+                timestamp_utc=datetime.now(UTC).isoformat(),
+                git_sha=current_git_sha(),
+                config_path=args.config,
+                seed=101,
+                hypothesis=f"Untouched test.jsonl verification ({args.n_test} NE + {args.n_test} EN) with bootstrap CIs.",
+                metrics={"summary": json.dumps(res, ensure_ascii=False)},
+                command="make pawp-verify",
+            )
+        )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint."""
     parser = build_parser()
@@ -652,6 +843,9 @@ def main(argv: list[str] | None = None) -> int:
         "finetune-bilingual": _cmd_finetune_bilingual,
         "eval-suite": _cmd_eval_suite,
         "synth": _cmd_synth,
+        "wsp-inspect": _cmd_wsp_inspect,
+        "wsp-edit": _cmd_wsp_edit,
+        "wsp-verify": _cmd_wsp_verify,
     }
     return handlers[args.command](container, args)
 

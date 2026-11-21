@@ -380,6 +380,30 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 
 ---
 
+## EXP-013a: Mechanistic Rank-1 Weight-Space Programming (`dev` vs. Untouched `300+300` `test.jsonl`)
+
+- **Date:** 2026-11-22 · **Status:** Completed — Targeted Effect Confirmed, Edit Rejected Due to Collateral PER Regression
+- **Reproducible Pipeline:** Implemented in Clean Architecture (`domain/pawp/wsp_analysis.py`, `infrastructure/pawp/wsp_engine.py`, `make pawp-inspect`, `make pawp-edit`, `make pawp-verify`), with all steps logged to `artifacts/reports/experiment_ledger.jsonl`.
+- **Protocol (Strict `dev` / `test` Split):**
+  1. **Inspect (`val.jsonl`, `150` NE + `150` EN, `10,488` NE phonemes):** Frozen CTC phoneme recognizer measured `DEV NE PER = 7.06%`, `DEV EN PER = 5.29%`, and identified **`b -> w`** (`25` substitutions; `37` total `b <-> w`) as the #1 Nepali phoneme confusion.
+  2. **Causal Localization (`val.jsonl`):** Layer-by-layer linear probing and causal activation patching showed `b vs w` is cleanly separated in `encoder_blocks.0..3` (`probe_acc = 1.000 -> 0.972`), collapses by `acoustic_blocks.3` (`cos_sep = 0.0289`), and exhibits its #1 positive causal patching flip strictly at `acoustic_blocks.3` (`causal_flip = +0.0812`).
+  3. **Edit & Controls (selected strictly on `val.jsonl`, editing only `acoustic_blocks.3.pw2.weight`, `32,768` params = `2.2%` of model):**
+     - **WSP Rank-1:** `W <- W + alpha * ||W|| * (u_out @ v_in^T)` (`alpha=0.05`, `||ΔW||_F = 2.278`).
+     - **Control 1 (Matched Random):** Same-location, same-Frobenius-norm Rank-1 random edit.
+     - **Control 2 (Same-Param FT):** Only `acoustic_blocks.3.pw2.weight` unfrozen, 40 steps Adam + frozen CTC loss on the exact same dev utterances.
+  4. **One-Shot Verification on Untouched `test.jsonl` (`300` NE + `300` EN, `366` occurrences of `b`, 1,000-resample paired bootstrap 95% CIs):**
+
+| Checkpoint | `b -> w` Confusion Rate (`n=366`) | NE PER (`n=300`) | EN PER (`n=300`) | NE PER Bootstrap 95% CI (`edit - base`) |
+|---|---:|---:|---:|---|
+| Baseline (`EXP-012` Polish) | `19.67%` (`72/366`) | `7.07%` | `5.29%` | — |
+| **WSP Rank-1 (`alpha=0.05`)** | **`17.21%` (`63/366`, `-2.46%`)** | `8.29%` | `7.05%` | `[+0.0111, +0.0219]` (collateral regression) |
+| Control 1: Matched Rank-1 Random | `19.67%` (`72/366`, `0.00%`) | `7.09%` | `5.33%` | `[+0.00001, +0.0012]` |
+| Control 2: Same-Param Gradient FT | `20.49%` (`75/366`, `+0.82%`) | `7.09%` | `5.41%` | `[-0.0038, +0.00025]` (`p=0.050`) |
+
+- **Honest Verdict:** The localized Rank-1 direction genuinely reduced `b -> w` confusion on 300 untouched test sentences (`19.67% -> 17.21%`), outperforming both the matched random control (`19.67%`) and same-parameter gradient fine-tuning (`20.49%`). However, because `alpha=0.05` (`||ΔW||_F = 2.28`) was applied directly to the shared `pw2.weight` without null-space projection against other phonemes, it caused statistically significant collateral PER regression (`NE +1.22%`, `EN +1.75%`). Under our no-regression rule, `EXP-013a` is **rejected** as a release edit. Next step (`EXP-013b`): apply a ROME/MEMIT-style null-space-projected Rank-1 edit strictly inside the Nepali-gated residual `acoustic_blocks.3.pw2.u_ne/v_ne` (zero EN collateral by construction, orthogonal to non-`b` Nepali phonemes).
+
+---
+
 ## AUDIT-002: Independent Review of EXP-007 – EXP-012 (Corrections)
 
 - **Date:** 2026-11-21 · **Reviewers:** independent audit agents. Findings were confirmed point by point by the experimenting agent (Gemini 4 Neon).
