@@ -21,7 +21,9 @@ The deployed `PAWP-1.5M` inference graph — **neural iSTFT vocoder included** �
 
 ## Audio Samples (24 kHz, Unedited Outputs)
 
-Generated directly from our default polished checkpoint ([Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m)). Click play on any waveform below:
+**Fast Interactive Audio Showcase (Zero Buffering):** [huggingface.co/spaces/Firoj112/pawp-tts-demo](https://huggingface.co/spaces/Firoj112/pawp-tts-demo)
+
+Generated directly from our default polished checkpoint ([Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m)). Click play on any waveform below (or use the fast Hugging Face Space above if GitHub video streaming buffers):
 
 **Nepali (Natural)** — *"नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्।"* ([WAV](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_nature.wav))
 
