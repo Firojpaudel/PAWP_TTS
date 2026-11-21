@@ -160,7 +160,7 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 
 ## EXP-004: Single-Voice Bilingual Teacher Corpus (ASR-Filtered)
 
-- **Date:** 2026-11-21 · **Status:** generating
+- **Date:** 2026-11-21 · **Status:** completed (superseded into `train_ft`)
 - **Hypothesis:** No human corpus has one speaker in both English and Nepali. A single-voice teacher corpus will give the student a consistent cross-lingual voice that multi-speaker transfer cannot.
 - **Method:** `make teacher-generate` synthesizes held-out-free English sentences (LJSpeech and LibriSpeech transcripts) and Nepali sentences (corpus transcripts) in one reference voice. Every clip is transcribed by an independent ASR and discarded when CER > 0.10 (EN) or 0.12 (NE). Code-mix generation was stopped: the native-script ASR rejected about 54% of code-mixed clips, mostly from script mismatch (see EXP-005).
 - **Interim (≈4.1k clips):** 3,782 kept, 348 rejected, 4 failed; 4.45 h EN, 3.02 h NE, 0.32 h code-mix.
@@ -205,7 +205,7 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 
 ## EXP-006: Retrain with Healthy Alignment (all data, single target voice)
 
-- **Status:** running. **Init:** EXP-003 weights (decoder included) with a fresh aligner.
+- **Status:** abandoned (superseded by EXP-007 CTC forced alignment). **Init:** EXP-003 weights (decoder included) with a fresh aligner.
 - **Method:** 15k aligner-only warm-up steps (FP32 aligner, normalized mel, separate clipping), then joint training. Splits: train + train_extra + train_ft (single-voice corpus + code-mix supplement). 60k steps; GAN from start (pretrained discriminators). Export collapsed to the target voice.
 - **Go/no-go gate:** `dur_one_frac` must fall well below its collapsed level before the acoustic phase. Teacher-forced CER at the first evaluation must be clearly below EXP-003's 0.55–0.72.
 
@@ -213,7 +213,7 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 
 ## EXP-007: CTC Forced-Alignment Durations (replaces jointly learned aligner)
 
-- **Date:** 2026-11-21 · **Status:** training (60k steps)
+- **Date:** 2026-11-21 · **Status:** completed (92k steps)
 - **Why:** the attention aligner (EXP-006) stayed collapsed on full mixed data. This held across optimizer settings and attention temperatures from 0.0005 to 0.05: 75–80% of tokens got 1 frame and CTC stayed at ≈7.6. Audio–text pairing in the cache was verified by ASR spot checks (CER mostly 0–0.04), which rules out data mismatch.
 - **Method:** a training-only CTC phoneme recognizer (3×conv + 2-layer BiGRU, `neural/ctc_aligner.py`), 6k steps (6.1 min), final CTC ≈1.0. Viterbi forced alignment gives per-token frame durations for all 123k training and 400 val items, cached under `durations/`. The student trains on these fixed durations and is initialized from EXP-003 (decoder kept).
 - **Alignment health** (share of inner tokens with 1 frame, mostly word-boundary tokens): train 0.162, train_extra 0.138, train_ft 0.131, val 0.157. The collapsed aligner was at ≈0.76. Median phoneme duration is 5 frames (50 ms).
@@ -333,6 +333,15 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
   2. At **`750K`** (`50%` compression, zero retraining), unconstrained **PAWP Adaptive** beats Uniform SVD by `-17.21%` EN WER and `-13.54%` NE WER.
   3. At **`500K`** (`67%` compression), zero-shot one-shot SVD collapses for both methods, confirming that `500K` and `300K` tiers require recovery distillation or co-training from compact shared-basis architectures (`configs/student_1m_pawp.yaml` and smaller).
 - **Saved Checkpoint:** `artifacts/checkpoints/exp010_compress/pawp_1m_dc_zeroshot.safetensors`.
+
+---
+
+## EXP-011: `PAWP-300K` Ultra-Compact Bilingual Shared-Basis Training (`281K` Unique Params)
+
+- **Date:** 2026-11-21 · **Status:** training (overnight 100k-step pipeline: 80k base + 20k target-voice FT)
+- **Hypothesis:** Because `EXP-010` demonstrated that one-shot post-training SVD collapses at `<= 500K`, training a purpose-built decoder-centric (`52.6%`) cross-depth `K=2` shared-basis architecture (`configs/student_300k_pawp.yaml`: `281,078` unique stored params, `328,158` materialized total, `20.96 MMAC/s`, `0.28 MB` INT8, `n_fft=512`, `24 kHz`) end-to-end with CTC forced-alignment durations and MPD/MRD GAN discriminators will yield an intelligible bilingual EN/NE/code-mixed voice smaller than monolingual `sanoTTS heart-nano` (`294K` / `337 KB` INT8).
+- **Method:** 80,000 base steps (`train_ft + 15k replay`, `lr: 1e-3`, GAN from step 15k, `--prosody-free-prob 0.5`) followed automatically by 20,000 target-voice fine-tune steps (`train_ft + 4k replay`, `lr: 3e-4`, GAN from step 0), live held-out ASR (`n=30/30/9`), internal 77-pair contrast check, and folded EN/NE ONNX export.
+- **Interim Signal:** At step 18k, `val_mel` reached `0.8867` (vs. `0.8009` for `PAWP-1.5M`). Final ASR/ONNX results will be added upon completion.
 
 ---
 

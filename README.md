@@ -67,14 +67,16 @@ Additional `WSP-E3` samples with native inline audio players are also hosted on 
 
 Scored against an independent speech recognizer alongside the human studio ground-truth recording floor ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)):
 
-| Model / Checkpoint | English WER / CER | Nepali WER / CER | Code-Mixed WER / CER | NepTTS-Bench (77 pairs) |
+| Model / Checkpoint | English WER / CER (`n=30`) | Nepali WER / CER (`n=30`) | Code-Mixed WER / CER (`n=9`) | Internal Contrast Smoke Test (77 pairs)* |
 | :--- | :---: | :---: | :---: | :---: |
 | Human Studio Ground-Truth Floor | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | — |
-| `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
-| `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
-| **`PAWP-1.5M` Polished Default (+10k, [EXP-012](docs/EXPERIMENTS.md))** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
-| **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
-| `PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md)) | `4.73% / 2.02%` | `10.09% / 1.93%` | `11.65% / 4.90%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
+| `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | `100.0%` (`0%` `/ʃ/` symbol bleed) |
+| `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | `100.0%` (`0%` `/ʃ/` symbol bleed) |
+| **`PAWP-1.5M` Polished Default (+10k, [EXP-012](docs/EXPERIMENTS.md))** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | **`100.0%`** (`0%` `/ʃ/` symbol bleed) |
+| **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | **`100.0%`** (`0%` `/ʃ/` symbol bleed) |
+| `PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md)) | `4.73% / 2.02%` | `10.09% / 1.93%` | `11.65% / 4.90%` | `100.0%` (`0%` `/ʃ/` symbol bleed) |
+
+*\*Internal G2P + non-silent/mel-differs phonological smoke test across 77 minimal pairs (NOT the published NepTTS-Bench listening/ASR benchmark; see `AUDIT-001` in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)).*
 
 ### 2. Streaming Latency & ONNX Parity
 
