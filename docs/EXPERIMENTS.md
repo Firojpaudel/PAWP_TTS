@@ -1,0 +1,179 @@
+# Experiment Journal
+
+Continuous log of all PAWP-TTS research milestones, ablations, verified measurements, and checkpoint hygiene status.
+
+---
+
+## EXP-000: Milestone 1 — Clean Architecture Bootstrap, Exact Budget Audit & Frontend/ASR Verification
+- **Status:** Completed & Verified
+- **Hypothesis:** A Clean Architecture bilingual `PAWP-1.5M` blueprint (`<= 1,500,000` total deployed parameters including embeddings, variance predictors, token-gated bilingual residuals, and 24 kHz ConvNeXt1D+iSTFT decoder) can enforce strict layer isolation, preserve Nepali and English phonological contrasts (without Hindi bleed), support seamless code-mixing, and verify end-to-end ASR evaluation readiness while keeping storage lean via zero-copy dataset symlinks.
+- **Baseline:** Reference budget `1,500,000` (`PAWP-1.5M`), external compact references `PiVo-1.4M` (`1,401,562`) and `sanoTTS` (`294,279`–`2.27M`), and open-weight `OmniVoice` teacher checkpoint (`1,015,378,394` combined parameters across LM + audio tokenizer).
+- **Method:**
+  1. Implemented Clean Architecture package `src/pawp_tts/{domain,application,infrastructure,interfaces}` with `import-linter` and AST import boundary checks.
+  2. Implemented deterministic EN/NE/CodeMix phonological frontend (`128`-symbol unified IPA + `28`-dim articulatory features; Nepali sibilant merger `स/श/ष -> /s/`, alveolar affricates `/ts, tsʰ, dz, dzʰ/`, 4-way laryngeal stop contrast, gemination, post-vocalic retroflex flapping, morpho-syntactic schwa syncope, clitic/hyphen/context-numeral code-mix routing, and coarticulatory boundary blending).
+  3. Audited `PAWPBilingualTTS` (`configs/student_1_5m.yaml`), inspected teacher safetensors headers without loading weights into RAM, and smoke-tested live EN/NE HTTP ASR evaluation endpoints.
+- **Verified Results:**
+  - **Code Quality & Clean Architecture (`make check`):** `ruff format`, `ruff check`, `mypy --strict` (`40` source files), `import-linter` (`3` contracts kept, `0` broken), `tests/architecture` (`2/2` passed), `tests/unit` (`16/16` passed).
+  - **Neural Architecture Integration (`make test-integration`):** `2/2` passed — verified end-to-end `24 kHz` waveform synthesis on EN/NE/CodeMix inputs and exact algebraic parity (`atol=1e-5`) for `GatedLowRankLinear.fold_language("ne")`.
+  - **4-Metric Parameter & Footprint Audit (`make count-params`):**
+    - `total_params`: **`1,490,390`** (`<= 1,500,000`, `9,610` under budget)
+    - `unique_stored_params`: `1,490,390`
+    - `effective_compute_params`: `1,293,750` (monolingual folded inference)
+    - `macs_per_sec_audio`: `106,068,760` (~106.1 MMAC/s)
+    - Serialized footprint: `5.96 MB` FP32 | `2.98 MB` FP16/BF16 | `1.49 MB` INT8 | `0.75 MB` INT4
+    - Module breakdown: Embeddings `18,432` (1.2%), Phoneme Encoder `268,288` (18.0%), Variance Adaptor `62,372` (4.2%), Frame Acoustic `279,888` (18.8%), Bilingual Residuals `196,640` (13.2%), Streaming iSTFT Decoder `664,770` (44.6%).
+  - **Teacher Checkpoint Audit (`make inspect-baselines`):**
+    - Acoustic LM: `813,977,841` params (`840` tensors; top uniform pools `(1024, 1024) x57`, `(3072, 1024) x56`, `(1024, 3072) x28`).
+    - Audio Tokenizer: `201,400,553` params (`527` tensors; `F32`).
+    - Combined teacher graph: `1,015,378,394` params (**681.3×** larger than `PAWP-1.5M`).
+  - **Live ASR Evaluation Smoke Check (`make asr-smoke`):**
+    - Nepali (`nep`) studio clip transcribed cleanly in `261.0 ms`.
+    - English (`eng`) `espeak-ng` reference clip transcribed cleanly in `118.3 ms` (`WER=0.167`, `CER=0.091`).
+- **Next Step (Milestone 2):** Build unbiased in-process English/Nepali/CodeMix G2P, compile leak-free zero-copy bilingual manifests & splits, implement folded ONNX chunked streaming + multi-resolution/adversarial losses, and profile hardware streaming latency.
+
+---
+
+## EXP-001: Milestone 2 — Unbiased In-Process G2P, Zero-Copy Bilingual Manifests & Folded Streaming Latency
+- **Status:** Completed & Verified
+- **Hypothesis:** Replacing per-word/external subprocess or hardcoded word tables with a thread-safe in-process `libespeak-ng` C-API adapter paired with algorithmic Nepali phonology eliminates vocabulary bias (`0` `<unk>` drops), while monolingual weight folding (`1,490,390 -> 1,293,750`) + bounded-halo ONNX chunked iSTFT streaming achieves `< 5 ms` CPU TTFA at `>= 100x` RTFx.
+- **Method:**
+  1. Replaced `_BUILTIN_WORD_IPA` / hardcoded acronym lists with `_InProcessEspeakNg` (`libespeak-ng.so.1` via `ctypes` with CLI fallback) + general orthographic normalization rules + complete IPA mapping (`ɚ, ɐ, ᵻ, ʔ, n̩/l̩/m̩`), achieving sub-0.2 ms sentence phonemization with zero source-hardcoded words.
+  2. Built zero-copy `BilingualManifestBuilder` (38-byte FLAC `STREAMINFO` parsing + deterministic SHA-1 split assignment) and pure domain `deduplicate_and_validate_splits` (`quality_tier == "tier1_studio"` kept text-disjoint across splits; multi-speaker corpora kept strictly speaker- and text-disjoint).
+  3. Added `fold_monolingual`, `OnnxStreamingExporter` (`encoder_dur` + `frame_decoder` + NumPy overlap-add `hann_istft_numpy`), `PyTorchStreamingRunner`, `MelSpectrogramExtractor`, `DynamicFrameBucketSampler`, and non-mutating spectral DC/Nyquist masking in `StreamingConvNeXtISTFTDecoder` so full autograd backward through `PAWPTrainingLoss`, `MultiPeriodDiscriminator`, and `MultiResolutionDiscriminator` succeeds.
+- **Verified Results:**
+  - **Code Quality & Tests (`make check && make test-integration`):** `ruff` (`57 files`), `mypy --strict` (`50 source files`), `import-linter` (`3/3` contracts kept), `tests/architecture` (`2 passed`), `tests/unit` (`19 passed`), `tests/integration` (`6 passed`), `make frontend-validate` passed.
+  - **Bilingual Zero-Copy Manifests (`make data-manifest && make data-splits`):**
+    - Total clean utterances: **`151,187`** (`train=140,028`, `val=5,679`, `test=5,480`) totaling **`399.927 hours`** (`train=375.18h`, `val=15.241h`, `test=9.506h`).
+    - Language hours: `en=305.28h`, `ne=79.202h` (`ne/tier1_studio` = `13,894` utterances across splits + `ne/tier1_human` = `26,762`), `mixed=15.445h` (`13,043` utterances).
+    - Quality & leakage audit: `dropped_duplicates=131`, `dropped_duration=37,677`, **`dropped_unk=0`**, `removed_cross_split=25,282`, **`leakage_text_count=0`**, **`leakage_speaker_count=0`**.
+  - **Hardware Streaming Benchmark (`make bench-latency`, untrained `PAWP-1.5M` folded EN graph, batch=1, 30 timed samples after 3 warmups, `60.0 ms` first chunk):**
+    - `onnx_cpu_folded` (CPU, 4 threads): Frontend `p50=0.159 ms`, TTFA **`p50=1.11 ms` / `p95=1.42 ms` / `p99=1.52 ms`**, **`RTFx=173.36`** (`RTF=0.0058`), Peak RSS `652.6 MB`.
+    - `pytorch_cpu_folded` (CPU, 4 threads): Frontend `p50=0.171 ms`, TTFA `p50=3.26 ms` / `p95=3.86 ms` / `p99=4.21 ms`, `RTFx=74.49`, Peak RSS `661.3 MB`.
+    - `pytorch_cuda_folded` (RTX 4090, 1 thread): Frontend `p50=0.165 ms`, TTFA `p50=3.30 ms` / `p95=3.67 ms` / `p99=3.72 ms`, `RTFx=96.36`, Peak RSS `1313.6 MB`.
+  - **Exported ONNX Artifacts (`make export-onnx`):** `encoder_dur=1237.4 KB`, `frame_decoder=3894.7 KB` in `artifacts/cache/onnx_export`.
+- **Next Step (Milestone 3):** Run pre-training teacher audit + build 24 kHz feature cache under `data/cache`, implement phonetic sensitivity analysis + `BasisBankLinear` + 28-dim articulatory FiLM conditioning + Stage 3 bilingual student training.
+
+---
+
+## EXP-002: Milestone 3 — Shared Weight-Basis Pooling (`PAWP-1M`), 28-Dim Articulatory Conditioning, RTX 4090 BF16 Training & NepTTS-Bench 77-Pair Evaluation
+- **Status:** Completed & Verified
+- **Hypothesis:** Pooling compatible `ConvNeXt1D` pointwise projections across depth into shared basis banks ($W_l = \sum_{k=1}^K a_{lk} B_k + U_l V_l$) paired with `28`-dim binary articulatory feature conditioning reduces unique stored parameters below `1,000,000` (`unique_stored_params < total_params`) while preserving exact monolingual weight folding (`atol=1e-5`), and RTX 4090 `BF16` training with MR-STFT + MPD/MRD losses converges smoothly under strict `keep_last_n <= 2` checkpoint hygiene.
+- **Method:**
+  1. Implemented `ArticulatoryConditioner` (`28`-dim phonological feature buffer + `Linear(28, d_model)` = `3,712` params, `0` lookup table parameters) and `SharedBasisPool` + `BasisBankLinear` + `decompose_weights_to_shared_basis` (`src/pawp_tts/infrastructure/weight_programming/basis_bank.py`), wired into `PAWPBilingualTTS` and `TorchParamAuditor`.
+  2. Implemented zero-copy lazy 24 kHz audio loader, Hamilton largest-remainder phonological duration aligner (`compute_phonological_durations`), and `.npz` feature caching (`extract_and_cache_features` -> `data/cache/features`).
+  3. Implemented `BilingualStudentTrainer` (`BF16` AMP on RTX 4090, `PAWPTrainingLoss` + periodic `MultiPeriodDiscriminator`/`MultiResolutionDiscriminator` updates) and `CheckpointManager` enforcing `keep_last_n = 2` (`latest.safetensors`, `best.safetensors`).
+  4. Implemented the 77-pair `NEPTTS_MINIMAL_PAIRS` benchmark (`11` pairs × `7` categories) and `run_evaluation_suite` across `en`, `ne`, `neptts`, and `codemix`.
+- **Verified Results:**
+  - **Code Quality & Tests (`make check && make test-integration`):** `ruff` (`66 files`), `mypy --strict` (`57 source files`), `import-linter` (`3/3` contracts kept across `91` files), `tests/architecture` (`2 passed`), `tests/unit` (`21 passed`), `tests/integration` (`9 passed`).
+  - **`PAWP-1M` Shared-Basis 4-Metric Parameter Audit (`make count-params CONFIG=configs/student_1m_pawp.yaml EXP_ID=exp002-1m`):**
+    - `total_params` (unshared graph): **`1,223,734`**
+    - `unique_stored_params` (on-disk shared bases): **`928,854`** (`<= 1,000,000`, saving `294,880` stored parameters via cross-depth `K=2` shared basis pools)
+    - `effective_compute_params` (folded monolingual): **`1,125,398`** (`~63.31 MMAC/s`)
+    - Serialized footprint: `3.72 MB` FP32 | `1.86 MB` FP16/BF16 | `0.93 MB` INT8 | `0.46 MB` INT4
+  - **Lazy 24 kHz Feature Extraction (`make teacher-extract`):**
+    - Cached `64` balanced samples (`ne=22`, `en=21`, `mixed=21`), `47,090` mel frames (`mean=735.8` frames/sample, `50.53 MB` in `data/cache/features`).
+  - **RTX 4090 `BF16` Training & Joint Bilingual Fine-Tuning (`make train && make finetune-bilingual`):**
+    - `make train` (`40` steps, `batch_size=8`, `BF16=True`): total loss decreased **`92.7147 -> 41.6098`** (`best=40.6325`, `loss_mel=1.9277`, `loss_stft=3.3298`, `loss_dur=0.0575`) at **`12.87 steps/s`**, peak VRAM **`1529.1 MB`**.
+    - `make finetune-bilingual` (`30` steps resumed from `best.safetensors`, `batch_size=8`, `BF16=True`): total loss decreased further **`40.4423 -> 35.5753`** (`best=34.5421`, `loss_mel=1.5054`, `loss_stft=3.7243`, `loss_dur=0.0744`) at **`13.14 steps/s`**, peak VRAM **`1525.2 MB`**.
+    - Disk hygiene verified: `artifacts/checkpoints/` retains strictly `best.safetensors` (`5.8 MB`) and `latest.safetensors` (`5.8 MB`).
+  - **Bilingual & NepTTS-Bench Evaluation (`make eval-en && make eval-ne && make eval-neptts && make eval-codemix`):**
+    - `neptts` (`77` minimal pairs across 7 categories): `phonological_contrast_accuracy = 1.0000`, `acoustic_contrast_health_rate = 1.0000`, `zero_unk_rate = 1.0000`, `nepali_zero_hindi_sibilant_bleed_rate = 1.0000`.
+    - `en` (`10` prompts): `synthesis_valid_rate = 1.0000`, `zero_unk_rate = 1.0000`, `15.33s` audio synthesized (`mean_rms = 0.03717`).
+    - `ne` (`10` prompts): `synthesis_valid_rate = 1.0000`, `zero_unk_rate = 1.0000`, `13.62s` audio synthesized (`mean_rms = 0.03689`).
+    - `codemix` (`10` prompts): `synthesis_valid_rate = 1.0000`, `zero_unk_rate = 1.0000`, `13.23s` audio synthesized (`mean_rms = 0.03713`).
+- **Next Step (Milestone 4):** Compute frequency-normalized phonetic sensitivity maps (`make pawp-sensitivity`), run budget-constrained rank allocation (`make pawp-allocate`), execute closed-loop phonetic error-driven weight regrowth (`make pawp-regrow`), and benchmark the equal-budget Pareto compression sweep (`1M -> 750K -> 500K -> 300K` via `make compress-sweep`).
+
+---
+
+## AUDIT-001: Independent Review of EXP-000 – EXP-002 (Retractions & Relabels)
+
+- **Date:** 2026-11-21
+- **Scope:** Full review of `src/`, `configs/`, `make/`, `tests/`, `docs/`, ledger, and the EXP-002 run logs.
+- **Status of Milestone 3:** Re-opened. Infrastructure is real; no trained speech model exists yet.
+
+### Claims relabelled or retracted
+| Prior claim | What it actually measures | Status |
+|---|---|---|
+| "NepTTS-Bench 77/77, contrast accuracy 1.0" | 77 agent-authored pairs in `domain/evaluation/neptts_bench.py` (not the published benchmark; several non-words and non-minimal pairs). Accuracy = frontend phoneme strings differ. | **Retracted** as a NepTTS-Bench result; renamed internal *G2P contrast smoke test*. |
+| "acoustic_contrast_health_rate 1.0" | Waveform finite, std > 1e-5, mels differ by > 1e-5. Random weights pass. | Smoke check only. |
+| "0% Hindi /ʃ/ bleed" | Absence of `ʃ` in G2P output. Never evaluated on audio. | Frontend check only. |
+| eval-en/ne/codemix `synthesis_valid_rate 1.0` | Output non-silent and finite. No ASR was run (`--live_asr` not passed by make targets). | Smoke check only. |
+| EXP-002 training (70 steps) | Trained `configs/student_1_5m.yaml`, **not** `student_1m_pawp.yaml`; 64 cached clips; heuristic (non-aligned) durations; text not cropped with audio. | Pipeline smoke run, not a model. |
+| 1.11 ms CPU TTFA / 173x RTFx | Decoder window compute on an untrained graph after full-utterance encoding. | Kernel micro-benchmark; not TTFA. |
+| MACs/s in parameter audit | Estimated as params × frame rate; no iSTFT cost. | Estimate, not measured. |
+
+### Verified as sound
+- Clean Architecture boundaries (`make check` green, `domain/` import-pure).
+- Parameter counting incl. decoder (1.5M config: 1,490,390 total; decoder 664,770).
+- `basis_bank.py` reconstruction `W = Σ a_k B_k + U V`; `fold_language` exact for tokens of that language.
+- Nepali G2P on spot words (gemination, alveolar affricates, स/श/ष→s, flapping, /ɦ/-deletion breathiness, schwa syncope).
+- Code-mix span routing.
+
+### Blocking defects before any quality claim
+1. Real alignments (MAS or CTC forced alignment) instead of heuristic durations.
+2. Crop text together with audio (or train on full utterances via bucketing).
+3. Padding masks in all losses; BCE + sigmoid for voicing.
+4. Resume must restore optimizer/scheduler/step and the discriminators; best checkpoint judged on validation set.
+5. ASR WER/CER on synthesized audio wired into `eval-*` targets; real NepTTS-Bench data if obtainable.
+6. Speaker-disjoint splits enforced for studio speakers too, with an honest leakage audit.
+7. Stub targets: `pawp-sensitivity`, `pawp-allocate`, `pawp-regrow`, `compress-sweep`, `scorecard`.
+8. English G2P lacks lexical stress.
+9. Single-speaker target: training mixes 1,690 speakers with no speaker conditioning.
+
+---
+
+## EXP-003: v2 Training Pipeline (Learned Alignment) — First Full-Scale 1.5M Student Run
+
+- **Date:** 2026-11-21 · **Status:** running · **Config:** `configs/student_1_5m.yaml` · **Seed:** 42
+- **Hypothesis:** Fixing the duration, cropping, masking and checkpoint-selection defects in AUDIT-001 and training on the full bilingual cache will produce an intelligible bilingual 1.5M student. Success is measured by ASR WER/CER on held-out sentences (`make eval-heldout`), compared with the same ASR on the human recordings.
+- **Falsification:** held-out Nepali or English CER is not clearly better than an untrained model, or validation mel L1 stops improving before the GAN phase starts.
+
+### Pipeline changes (code)
+| Area | Before | After |
+|---|---|---|
+| Durations | heuristic class-weighted split | training-only aligner (CTC forward-sum + beta-binomial prior + MAS, `neural/aligner.py`); not in inference graph |
+| Cropping | audio cut to 3.6 s, full text kept | full 1–12 s utterances in length-bucketed batches |
+| Losses | unmasked; voicing L1 on logits | masked by token/frame/sample lengths; voicing BCE |
+| Prosody conditioning | predicted F0/energy during training | teacher-forced ground truth (predictors still supervised) |
+| GAN | every 4th step from step 0, weight 0.05 | MPD+MRD every step from 30k, adv 1.0 + FM 2.0 on 0.68 s segments |
+| Checkpoint selection | lowest single-batch train loss | lowest validation mel L1 (400 held-out utterances) |
+| Resume | weights only, mismatch silently ignored | full state (model, aligner, discriminators, optimizers, schedulers, step) |
+| Speakers | single embedding for 1,690 voices | multi-speaker training (1,812 speakers); export collapsed to one target speaker (a Nepali studio female voice) → 1 speaker vector in deployed graph |
+| MAS speed | — | vectorised CPU MAS: 12.5 ms per batch vs. 132 ms for the GPU loop |
+| Eval | checkpoint failures fell back to random weights; ASR off | strict load (raises); ASR on all prompts; new `eval-heldout` (synth vs. human ASR) |
+
+### Data (v2 cache, 24 kHz, fp16 mel, int16 wav)
+| Split | Nepali | English | Code-mixed | Items |
+|---|---:|---:|---:|---:|
+| train | 56.91 h | 76.67 h (sampled subset) | 13.97 h | 80,371 |
+| train_extra | 51.16 h | — | — | 29,731 |
+| val | 0.32 h | 0.36 h | 0.05 h | 400 |
+
+- `train_extra` adds studio Nepali (loss weight 1.0) and supplementary expressive/multi-domain Nepali sets (train-only, loss weight 0.5). Sentences that appear in val/test were dropped (5,245 rows).
+- Cache build fix: single-row-group parquet files (>1 GB) are now streamed in 32-row batches. Loading them whole caused out-of-memory worker crashes that had silently dropped 27,625 Nepali clips.
+
+### Early training signal (not a result)
+- Steps 100 → 300: mel L1 5.95 → 4.00; pitch L1 0.94 → 0.07; throughput 14 steps/s; 3.7 GB VRAM (RTX 4090, BF16).
+- Results will be added here after validation and `make eval-heldout`.
+
+---
+
+## EXP-004: Single-Voice Bilingual Teacher Corpus (ASR-Filtered)
+
+- **Date:** 2026-11-21 · **Status:** generating
+- **Hypothesis:** No human corpus has one speaker in both English and Nepali. A single-voice teacher corpus will give the student a consistent cross-lingual voice that multi-speaker transfer cannot.
+- **Method:** `make teacher-generate` synthesizes held-out-free English sentences (LJSpeech and LibriSpeech transcripts) and Nepali sentences (corpus transcripts) in one reference voice. Every clip is transcribed by an independent ASR and discarded when CER > 0.10 (EN) or 0.12 (NE). Code-mix generation was stopped: the native-script ASR rejected about 54% of code-mixed clips, mostly from script mismatch (see EXP-005).
+- **Interim (≈4.1k clips):** 3,782 kept, 348 rejected, 4 failed; 4.45 h EN, 3.02 h NE, 0.32 h code-mix.
+- **Throughput note:** the teacher service's capacity caps throughput at ≈1.4 clips/s. Raising client concurrency from 5 to 16 only increased per-request latency (≈0.3 s idle → ≈10 s queued).
+- **Disk hygiene:** the corpus is regenerable; delete it after training with `make clean-teacher`.
+
+---
+
+## EXP-005: Single-Voice Fine-Tune (Target Voice) with Code-Mix Supplement
+
+- **Date:** 2026-11-21 · **Status:** launched
+- **Hypothesis:** Fine-tuning the EXP-003 base on (a) the EXP-004 single-voice corpus, (b) a single-voice code-mix supplement (≈20 h, loss weight 0.7) and (c) 15k replayed base utterances will give one consistent voice across EN/NE/code-mix without losing base pronunciation.
+- **Method:** initialized from the EXP-003 state, stopped at the step-22k save (validation mel L1 had flattened around 0.91–0.93 after the GAN started at 10k). The speaker table grows from 1,812 to 1,814 rows; new rows start at the mean speaker vector. Discriminators are reused, so the GAN runs from step 0. 20k steps, LR 5e-4. The export is collapsed to the target voice.
+- **Fine-tune split at launch:** 13,037 items: 3.25 h EN, 3.33 h NE, 19.57 h code-mix. The target-voice share grows as EXP-004 completes, via rebuild and resume.
+- **Code-mix evaluation:** a local mixed-script recognizer scores code-mixed audio. On 8 code-mixed clips with English words, CER fell from 0.29 to 0.03 and from 0.22 to 0.00 relative to the native-script ASR, and was unchanged on Devanagari-only clips. This is a small spot check, not a benchmark.
+- **Evaluation plan:** `make eval-heldout` (EN/NE via the primary ASR, code-mix via the mixed-script ASR, each against human-recording baselines), plus wandb audio samples every 2k steps.
