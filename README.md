@@ -20,11 +20,13 @@ structured edit space it uses.
 The target is a complete deployed inference graph, decoder/vocoder included, of
 **<= 1.5M parameters**, followed by controlled compression toward **300K**.
 
-- **Pretrained Weights (Hugging Face):** [Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m) (`5.98 MB` FP32 safetensors + folded ONNX graphs)
+- **Pretrained Weights (Hugging Face):**
+  - Base Target Voice (`EXP-008-FT`): [Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m) (`5.98 MB` FP32 safetensors + folded EN/NE ONNX graphs)
+  - Weight-Space Programmed Edition (`EXP-009`, `WSP-E3`): [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) (zero-training surgical edit by Gemini 4 Neon: `9.93%` Code-Mixed WER, `9.93%` Nepali WER, `0.00%` Nepali drift)
 - **Audio Samples (24 kHz, Single Target Voice):**
-  - [Nepali (Kathmandu Standard)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/sample_ne.wav)
-  - [English](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/sample_en.wav)
-  - [English–Nepali Code-Mixed](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/sample_codemix.wav)
+  - [Nepali (Kathmandu Standard)](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp/resolve/main/sample_ne.wav)
+  - [English](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp/resolve/main/sample_en.wav)
+  - [English–Nepali Code-Mixed](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp/resolve/main/sample_codemix.wav)
 
 ---
 
@@ -35,8 +37,8 @@ The target is a complete deployed inference graph, decoder/vocoder included, of
 | M1 | Clean Architecture bootstrap, unified EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
 | M2 | Bilingual manifests and splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
 | M3 | 105k Kathmandu lexicon, CTC forced-alignment durations, full-scale 92k base training + 20k target-voice fine-tuning, live ASR evaluation | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md)) |
-| M4 | Agent-driven weight programming (inspect -> diagnose -> edit -> verify) on the trained 1.5M model, plus phonetic sensitivity maps, budgeted rank allocation and the 1M -> 300K compression sweep | **in progress** |
-| M5 | Trained ONNX FP32/INT8 export and parity verification, multi-axis Pareto scorecard, public release | **in progress** (`Firoj112/pawp-tts-1.5m` live) |
+| M4 | Agent-driven weight programming (`inspect -> diagnose -> edit -> verify`, Gemini 4 Neon) + zero-shot phonetic sensitivity compression frontier (`1.5M -> 1.0M -> 750K -> 500K`) | **done** ([EXP-009](docs/EXPERIMENTS.md), [EXP-010](docs/EXPERIMENTS.md)); recovery distillation for `<= 1M` next |
+| M5 | Trained ONNX FP32 export & parity verification (`cosine 0.9987–0.99998`), public Hugging Face release | **done** ([pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m), [pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp)) |
 
 ## Benchmark Results (`PAWP-1.5M`)
 
@@ -46,7 +48,9 @@ Scored on held-out sentences (30 EN, 30 NE, 9 Code-Mixed) via live ASR against t
 |---|---:|---:|---:|---:|
 | Human Studio Ground-Truth Floor | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | — |
 | `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
-| **`PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md))** | **`5.03% / 2.28%`** | **`9.93% / 1.97%`** | **`11.99% / 4.92%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
+| `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
+| **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
+| **`PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`4.73% / 2.02%`** | **`10.09% / 1.93%`** | **`11.65% / 4.90%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
 
 ## Findings so far
 
