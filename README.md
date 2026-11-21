@@ -54,18 +54,28 @@ Only verified, reproducible observations are listed. Details and caveats are in 
 
 ```mermaid
 flowchart LR
-    T["Text<br/>EN · NE · code-mixed"] --> R{"Script & language<br/>span router"}
-    R -->|Latin| EN["English G2P<br/>(eSpeak NG)"]
-    R -->|Devanagari| NE["Nepali rule G2P<br/>(schwa deletion, gemination,<br/>affricates, स/श/ष → s)"]
-    EN --> U["Unified phoneme tokens<br/>phoneme · language · stress · boundaries"]
-    NE --> U
-    U --> M["PAWP student<br/>1.49M parameters"]
-    M --> W["24 kHz waveform"]
-    classDef det fill:#eef,stroke:#88a;
-    class R,EN,NE,U det;
+    T(["Text<br/>EN · NE · code-mixed"])
+
+    subgraph FRONTEND ["Deterministic frontend (0 learned parameters)"]
+        R{"Script & language<br/>span router"}
+        R -->|Latin| EN["English G2P<br/>(eSpeak NG)"]
+        R -->|Devanagari| NE["Nepali rule G2P<br/>(105k lexicon, schwa syncope,<br/>gemination, affricates, स/श/ष → s)"]
+        EN --> U["Unified phoneme tokens<br/>phoneme · language · stress · boundaries"]
+        NE --> U
+    end
+
+    subgraph BACKEND ["Neural synthesis backend (1.49M parameters)"]
+        M["PAWP student<br/>text encoder · variance adaptor ·<br/>acoustic net · iSTFT decoder"]
+    end
+
+    W(["24 kHz waveform"])
+
+    T --> R
+    U --> M
+    M --> W
 ```
 
-The blue stages are deterministic code with no learned parameters. Everything learned sits inside the 1.49M-parameter student, which is detailed below.
+The deterministic frontend carries no learned parameters (pronunciation lexicons, phonological rules, and text normalization). Everything learned sits strictly inside the 1.49M-parameter neural student graph, which is detailed below.
 
 ### Student model architecture
 
