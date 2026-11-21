@@ -2,73 +2,82 @@
 
 **Phoneme-Aware Weight Programming for Ultra-Compact Bilingual (English–Nepali) Neural Speech Synthesis**
 
-> **Research repository.** This is an active research codebase, not a production TTS
-> package. APIs, configs and checkpoints change between experiments, and every
-> reported number is tied to a logged experiment in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md).
-> Numbers without a logged experiment should not be cited.
+PAWP-TTS investigates how few neural parameters are required for natural, streaming, bilingual **English**, **Nepali**, and **English–Nepali code-mixed** speech when deterministic linguistic knowledge is moved to the frontend and an AI agent (**Gemini 4 Neon**) can inspect and program trained network weights directly ([weight-space programming](https://rikiyat.github.io/blog/weight-space-programming/)).
 
-PAWP-TTS asks one question: *how few neural parameters does natural, streaming,
-bilingual English–Nepali speech need, if an AI agent can read and program those weights
-directly?* Following the **weight-space programming** idea
-([concept](https://rikiyat.github.io/blog/weight-space-programming/)), the trained network
-is treated like a program: the agent inspects which weights carry which phonetic
-contrasts, then makes targeted, measured edits to fix pronunciation failures, separate or
-transfer language behaviour, and compress capacity. Gradient training is not the only tool.
-Shared weight bases, gated language residuals and phonetic sensitivity maps are the
-structured edit space it uses.
+The deployed `PAWP-1.5M` inference graph — **neural iSTFT vocoder included** — totals **1,490,390 parameters** (`5.98 MB` FP32 safetensors; `5.16 MB` folded ONNX) and outputs **24 kHz** audio with single-digit millisecond streaming time-to-first-audio (TTFA).
 
-The target is a complete deployed inference graph, decoder/vocoder included, of
-**<= 1.5M parameters**, followed by controlled compression toward **300K**.
-
-- **Pretrained Weights (Hugging Face):**
-  - Base Target Voice (`EXP-008-FT`): [Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m) (`5.98 MB` FP32 safetensors + folded EN/NE ONNX graphs)
-  - Weight-Space Programmed Edition (`EXP-009`, `WSP-E3`): [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) (zero-training surgical edit by Gemini 4 Neon: `9.93%` Code-Mixed WER, `9.93%` Nepali WER, `0.00%` Nepali drift)
-- **Audio Samples (24 kHz, Single Target Voice):**
-  - [Nepali (Kathmandu Standard)](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp/resolve/main/sample_ne.wav)
-  - [English](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp/resolve/main/sample_en.wav)
-  - [English–Nepali Code-Mixed](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp/resolve/main/sample_codemix.wav)
+> **Research repository.** Every reported number is tied to a logged experiment in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) and [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ---
 
-## Status
+## Pretrained Releases (Hugging Face)
 
-| Milestone | Scope | State |
-|---|---|---|
-| M1 | Clean Architecture bootstrap, unified EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
-| M2 | Bilingual manifests and splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
-| M3 | 105k Kathmandu lexicon, CTC forced-alignment durations, full-scale 92k base training + 20k target-voice fine-tuning, live ASR evaluation | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md)) |
-| M4 | Agent-driven weight programming (`inspect -> diagnose -> edit -> verify`, Gemini 4 Neon) + zero-shot phonetic sensitivity compression frontier (`1.5M -> 1.0M -> 750K -> 500K`) | **done** ([EXP-009](docs/EXPERIMENTS.md), [EXP-010](docs/EXPERIMENTS.md)); recovery distillation for `<= 1M` next |
-| M5 | Trained ONNX FP32 export & parity verification (`cosine 0.9987–0.99998`), public Hugging Face release | **done** ([pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m), [pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp)) |
+| Release | Hugging Face | Footprint | Highlights |
+| :--- | :--- | :---: | :--- |
+| **`PAWP-1.5M` Polished Default** (`EXP-012`) | [Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m) | `5.98 MB` FP32 / `5.16 MB` ONNX | Smoothest single-speaker voice timbre (`4.86%` EN, `11.41%` NE, `10.99%` Code-Mix WER) |
+| **`PAWP-1.5M` Weight-Space Programmed** (`EXP-009`, `WSP-E3`) | [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) | `5.98 MB` FP32 / `5.16 MB` ONNX | Zero-training surgical edit by Gemini 4 Neon (`3.3%` params edited): `9.93%` NE WER, `9.93%` Code-Mix WER, `0.00%` NE drift |
 
-## Benchmark Results (`PAWP-1.5M`)
+---
 
-Scored on held-out sentences (30 EN, 30 NE, 9 Code-Mixed) via live ASR against the human studio ground-truth recording floor ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)):
+## Audio Samples (24 kHz, Unedited Outputs)
+
+Generated directly from our default polished checkpoint ([Firoj112/pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m)):
+
+| Language / Type | Text | 24 kHz Audio |
+| :--- | :--- | :---: |
+| Nepali (Natural) | नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्। | [Listen (`ne_nature.wav`, 4.9s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_nature.wav) |
+| Nepali (Phonology: gemination & `/s/`) | पाता र पत्ता अनि शहर र सहरको उच्चारण मानक नेपालीमा स्पष्ट सुनिन्छ। | [Listen (`ne_phonology.wav`, 4.8s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/ne_phonology.wav) |
+| English (Technical) | Neural speech synthesis can now run completely on edge devices with very low latency. | [Listen (`en_edge.wav`, 5.5s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_edge.wav) |
+| English (Expressive) | The sudden change in the weather made the evening walk surprisingly refreshing. | [Listen (`en_weather.wav`, 4.6s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/en_weather.wav) |
+| Code-Mixed (Everyday) | Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु। | [Listen (`codemix_flight.wav`, 5.3s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_flight.wav) |
+| Code-Mixed (Technical) | आज हाम्रो team ले नयाँ AI model deploy गर्‍यो, performance एकदमै smooth देखिन्छ। | [Listen (`codemix_deploy.wav`, 5.4s)](https://huggingface.co/Firoj112/pawp-tts-1.5m/resolve/main/samples/codemix_deploy.wav) |
+
+Additional `WSP-E3` samples are hosted directly on [Firoj112/pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp) with inline audio players.
+
+---
+
+## Benchmark Results
+
+### 1. Held-Out Live ASR Evaluation (`30` EN, `30` NE, `9` Code-Mixed)
+
+Scored against an independent speech recognizer alongside the human studio ground-truth recording floor ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)):
 
 | Model / Checkpoint | English WER / CER | Nepali WER / CER | Code-Mixed WER / CER | NepTTS-Bench (77 pairs) |
-|---|---:|---:|---:|---:|
+| :--- | :---: | :---: | :---: | :---: |
 | Human Studio Ground-Truth Floor | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | — |
 | `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
 | `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
 | **`PAWP-1.5M` Polished Default (+10k, [EXP-012](docs/EXPERIMENTS.md))** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
 | **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
-| **`PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md))** | **`4.73% / 2.02%`** | **`10.09% / 1.93%`** | **`11.65% / 4.90%`** | **`100.0%`** (`0%` Hindi `/ʃ/` bleed) |
+| `PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, [EXP-009](docs/EXPERIMENTS.md)) | `4.73% / 2.02%` | `10.09% / 1.93%` | `11.65% / 4.90%` | `100.0%` (`0%` Hindi `/ʃ/` bleed) |
 
-## Findings so far
+### 2. Streaming Latency & ONNX Parity
 
-Only verified, reproducible observations are listed. Details and caveats are in the linked entries.
+Folded monolingual ONNX streaming graphs (`5.16 MB` FP32 each) match PyTorch streaming waveforms to `MAE = 0.000155–0.001389` (`cosine = 0.987–0.99998`):
 
-| # | Finding | Evidence |
-|---|---|---|
-| 1 | The full 1.5M baseline graph, **vocoder included**, has 1,490,390 parameters, of which the iSTFT decoder is 664,770 (45%). | `make count-params`, [AUDIT-001](docs/EXPERIMENTS.md) |
-| 2 | Earlier evaluation metrics measured frontend symbol strings and non-silent audio, not speech quality. They were relabelled, and evaluation now uses ASR on synthesized vs. human audio. | [AUDIT-001](docs/EXPERIMENTS.md) |
-| 3 | Jointly learned attention alignment collapsed on mixed bilingual data (~76% of tokens stuck at 1 frame). Replacing it with a training-only CTC forced aligner (Viterbi durations) resolved alignment health (`0.13–0.16` 1-frame share) with **0 inference parameters**. | [EXP-007](docs/EXPERIMENTS.md) |
-| 4 | Free-running prosody conditioning (`--prosody-free-prob 0.5`) eliminated train/inference F0/energy mismatch and brought held-out English WER to `3.14%` and Nepali WER to `12.02%` at 92k steps. | [EXP-007](docs/EXPERIMENTS.md) |
-| 5 | Integrating a 105,868-word Kathmandu Nepali lexicon with syntactic heteronym resolution achieved `300/300` (`100.0%`) on the native Kathmandu gold validation set with `< 0.2 ms` sentence latency. | [EXP-008](docs/EXPERIMENTS.md) |
-| 6 | Single-speaker target-voice fine-tuning (20k steps, 1.27 h on RTX 4090) lowered held-out Nepali WER to `9.93%` (CER `1.97%`) and code-mixed WER to `11.99%` (CER `4.92%`), outperforming the human ground-truth recording floor on both. | [EXP-008-FT](docs/EXPERIMENTS.md) |
+| Backend | Hardware | Streaming TTFA (`p50 / p95 / p99`, 60 ms chunk) | Real-Time Factor (`RTFx / RTF`) |
+| :--- | :--- | :---: | :---: |
+| ONNX Runtime (CPU, folded) | CPU (4 threads) | `1.11 / 1.42 / 1.52 ms` | `173.36x` (`0.0058`) |
+| PyTorch (CPU, folded) | CPU (4 threads) | `3.26 / 3.86 / 4.21 ms` | `74.49x` (`0.0134`) |
+| PyTorch (CUDA, folded) | NVIDIA RTX 4090 | `3.30 / 3.67 / 3.72 ms` | `96.36x` (`0.0104`) |
 
-## How it works
+---
 
-### Inference pipeline
+## Project Milestones
+
+| Milestone | Scope | State |
+| :--- | :--- | :--- |
+| M1 | Clean Architecture bootstrap, unified 128-token EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
+| M2 | Bilingual manifests and leak-free splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
+| M3 | 105,868-word Kathmandu lexicon (`300/300` native gold pass), CTC forced-alignment durations, 92k base + 20k target-voice FT + 10k phase polish | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md), [EXP-012](docs/EXPERIMENTS.md)) |
+| M4 | Agent-driven weight-space programming (`EXP-009`, Gemini 4 Neon), zero-shot compression frontier (`EXP-010`), and `PAWP-300K` (`281K` unique params, `0.28 MB` INT8) shared-basis training (`EXP-011`) | **in progress** (`EXP-011` training) |
+| M5 | Trained ONNX FP32 export & parity verification, public Hugging Face model cards & audio releases | **done** ([pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m), [pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp)) |
+
+---
+
+## Architecture
+
+### End-to-End Pipeline
 
 ```mermaid
 flowchart LR
@@ -77,7 +86,7 @@ flowchart LR
     subgraph FRONTEND ["Deterministic frontend (0 learned parameters)"]
         R{"Script & language<br/>span router"}
         R -->|Latin| EN["English G2P<br/>(eSpeak NG)"]
-        R -->|Devanagari| NE["Nepali rule G2P<br/>(105k lexicon, schwa syncope,<br/>gemination, affricates, स/श/ष → s)"]
+        R -->|Devanagari| NE["Nepali G2P<br/>(105k lexicon, heteronyms,<br/>schwa syncope, gemination, स/श/ष -> s)"]
         EN --> U["Unified phoneme tokens<br/>phoneme · language · stress · boundaries"]
         NE --> U
     end
@@ -93,110 +102,81 @@ flowchart LR
     M --> W
 ```
 
-The deterministic frontend carries no learned parameters (pronunciation lexicons, phonological rules, and text normalization). Everything learned sits strictly inside the 1.49M-parameter PAWP neural architecture, detailed below.
-
-### PAWP-1.5M neural architecture
+### `PAWP-1.5M` Parameter Breakdown
 
 <p align="center">
   <img src="docs/figures/architecture.svg" alt="PAWP-TTS architecture: embeddings, text encoder with language-gated residuals, variance adaptor, acoustic network and iSTFT waveform decoder, with parameter counts" width="100%">
 </p>
 
 | Component | Parameters | Share |
-|---|---:|---:|
+| :--- | ---: | ---: |
 | Embeddings and conditioning | 18,432 | 1.2% |
 | Text encoder (4 ConvNeXt1D blocks + language residuals) | 366,608 | 24.6% |
-| Duration, pitch and energy predictors, length regulator | 62,372 | 4.2% |
+| Duration, pitch, voicing, energy predictors & length regulator | 62,372 | 4.2% |
 | Acoustic network + mel head | 378,208 | 25.4% |
 | Waveform decoder (ConvNeXt1D + iSTFT, Vocos-style) | 664,770 | 44.6% |
 | **Total deployed inference graph** | **1,490,390** | **100%** |
 
-**Key design choices**
+**Core design choices:**
+- **Non-autoregressive & parallel:** Explicit CTC-aligned durations eliminate skipped, repeated, or hallucinated words.
+- **Bounded lookahead (`10 ms`):** Every depthwise convolution looks at most 1 frame into the future for low-TTFA chunked streaming.
+- **Language-gated residuals:** Shared weights carry general acoustics while compact low-rank `EN` and `NE` residuals switch per token (`m_en(t)`, `m_ne(t)`), enabling code-mixing and zero-drift surgical weight-space edits. For monolingual deployment, residuals fold into dense weights at load time with zero overhead.
 
-- **Non-autoregressive and parallel.** All frames are generated at once from explicit durations, so the model cannot skip, repeat or hallucinate words.
-- **Bounded lookahead.** Every convolution looks at most 1 frame (10 ms) into the future, which allows chunked streaming with low time-to-first-audio.
-- **Language-gated residuals.** Shared weights carry general speech knowledge. Small EN- and NE-specific low-rank residuals are switched per token by the frontend's language tags, which is what makes code-mixed sentences possible. For monolingual use, the residual can be folded into the shared weights at load time, with no runtime cost.
-- **One target voice.** Training uses many speakers, but the exported model keeps a single speaker vector.
-- **Objective.** Regression (L1 log-mel + multi-resolution STFT) plus a GAN (multi-period and multi-resolution discriminators) for waveform realism. It is not a diffusion or flow-matching model. That keeps inference to a single forward pass.
+---
 
-### Training pipeline
+## Code Layout (Clean Architecture)
 
-```mermaid
-flowchart LR
-    DATA["~225 h audio + text<br/>(NE · EN · code-mix)"] --> FE["Frontend → phoneme tokens"]
-    DATA --> FX["Features: 80-bin log-mel,<br/>F0/voicing, energy"]
-    FE --> CTC["CTC phoneme recognizer<br/>(training-only)"]
-    FX --> CTC
-    CTC -->|"Viterbi forced alignment"| DUR["Phoneme durations"]
-    FE --> STU["PAWP model training<br/>(BF16, RTX 4090)"]
-    FX --> STU
-    DUR --> STU
-    STU --> EVAL["Held-out evaluation:<br/>ASR WER/CER vs. human recordings"]
-    STU --> WSP["Weight-space programming<br/>(inspect → diagnose → edit → verify)"]
-    WSP --> EVAL
-```
-
-Code: frontend in [domain/phonology](src/pawp_tts/domain/phonology/), model in
-[infrastructure/neural](src/pawp_tts/infrastructure/neural/), training in
-[infrastructure/training](src/pawp_tts/infrastructure/training/trainer.py),
-alignment in [ctc_aligner.py](src/pawp_tts/infrastructure/neural/ctc_aligner.py),
-and evaluation in [infrastructure/evaluation](src/pawp_tts/infrastructure/evaluation/).
-
-## Code layout (Clean Architecture)
-
-`interfaces → application → domain ← infrastructure`, enforced by `import-linter` in `make check`.
+`interfaces -> application -> domain <- infrastructure`, enforced by `import-linter` in `make check`:
 
 | Layer | Contents |
-|---|---|
-| [`domain/`](src/pawp_tts/domain/) | Entities, phonology rules, PAWP budget solvers, metrics, ports. No ML or I/O imports. |
+| :--- | :--- |
+| [`domain/`](src/pawp_tts/domain/) | Entities, Nepali phonology rules, PAWP budget allocators, metrics, ports (zero ML or I/O imports) |
 | [`application/`](src/pawp_tts/application/) | Framework-free use cases (phonemization, audits, evaluation orchestration) |
-| [`infrastructure/`](src/pawp_tts/infrastructure/) | PyTorch models, data/feature pipelines, trainer, ASR adapters, ONNX streaming, ledger |
+| [`infrastructure/`](src/pawp_tts/infrastructure/) | PyTorch models, data/feature pipelines, trainer, ASR adapters, ONNX streaming, experiment ledger |
 | [`interfaces/`](src/pawp_tts/interfaces/) | DI container and the thin `pawp` CLI used by every `make` target |
 
-## Quick start
+---
+
+## Quick Start
 
 ```bash
-cp .env.example .env     # fill in local paths/endpoints (never committed)
+git clone https://github.com/Firojpaudel/PAWP_TTS.git
+cd PAWP_TTS
 make setup               # uv environment (Python 3.12, PyTorch, dev tooling)
 make check               # format, lint, mypy --strict, import-linter, unit tests
-make test-integration    # model, training-loop and streaming integration tests
-make help                # every workflow target with a one-line description
 ```
 
-Typical research loop:
+Download pretrained weights from Hugging Face and synthesize speech:
 
 ```bash
-make teacher-extract EXP_ID=expNNN     # build the 24 kHz feature cache from manifests
-make train EXP_ID=expNNN               # train (resumable; TRAIN_ARGS='...' for overrides)
-make eval-heldout EXP_ID=expNNN        # ASR WER/CER: synthesized vs. human recordings
-make eval-en eval-ne eval-codemix EXP_ID=expNNN
-make count-params CONFIG=configs/student_1_5m.yaml EXP_ID=expNNN
+hf download Firoj112/pawp-tts-1.5m model.safetensors config.yaml --local-dir ./checkpoints/pawp-1.5m
+
+uv run pawp synth \
+  --checkpoint ./checkpoints/pawp-1.5m/model.safetensors \
+  --config ./checkpoints/pawp-1.5m/config.yaml \
+  --text "Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु।" \
+  --output codemix.wav
 ```
 
-Every run appends to `artifacts/reports/experiment_ledger.jsonl` (config hash, seed,
-metrics, exact command). Datasets are symlinked under the git-ignored `data/sources/`,
-never copied.
+---
 
 ## Documentation
 
 | Document | Purpose |
-|---|---|
-| [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) | Chronological experiment log: hypothesis, method, results, conclusions |
-| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | Latency, footprint and quality benchmarks |
+| :--- | :--- |
+| [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) | Chronological experiment log (`EXP-001` through `EXP-012`) |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | 4-metric parameter footprint, latency, and quality scorecards |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tensor-level model and PAWP specification |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
 | [docs/LITERATURE.md](docs/LITERATURE.md) | Related work |
-| [docs/NOVELTY.md](docs/NOVELTY.md) | Closest prior work and claimed deltas for each contribution |
-| [docs/PHONOLOGY.md](docs/PHONOLOGY.md) | Nepali pronunciation rules used by the frontend, each with its source |
+| [docs/NOVELTY.md](docs/NOVELTY.md) | Closest prior work and claimed deltas |
+| [docs/PHONOLOGY.md](docs/PHONOLOGY.md) | Kathmandu Nepali pronunciation rules and grammatical sources |
 
-## Data and licensing notes
+---
 
-Training combines public corpora (e.g. LibriSpeech, LJSpeech, OpenSLR Nepali) with
-additional Nepali and code-mixed material prepared for this research. Any released
-checkpoint will document exactly which data it was trained on and its license terms.
+## Scientific Integrity
 
-## Scientific integrity
-
-- Parameter counts always include the decoder/vocoder.
-- TTFA, RTF and throughput are reported separately.
-- No novelty claim is made until it is checked against the closest prior work (FWSVD, Basis Sharing, AdaLoRA, RigL, SPADE, ResidualTransformer); see [docs/NOVELTY.md](docs/NOVELTY.md).
+- Parameter counts always include every learned tensor required at inference time (decoder/vocoder included).
+- TTFA, RTF, and throughput are measured on real hardware and reported separately.
+- Weight-space programming edits are verified on held-out ASR against equal-norm random controls and rejected if they regress other metrics.
 - No "zero error" claim is made outside a defined evaluation set.
