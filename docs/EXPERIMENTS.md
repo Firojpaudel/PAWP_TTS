@@ -400,7 +400,13 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 | Control 1: Matched Rank-1 Random | `19.67%` (`72/366`, `0.00%`) | `7.09%` | `5.33%` | `[+0.00001, +0.0012]` |
 | Control 2: Same-Param Gradient FT | `20.49%` (`75/366`, `+0.82%`) | `7.09%` | `5.41%` | `[-0.0038, +0.00025]` (`p=0.050`) |
 
-- **Honest Verdict:** The localized Rank-1 direction genuinely reduced `b -> w` confusion on 300 untouched test sentences (`19.67% -> 17.21%`), outperforming both the matched random control (`19.67%`) and same-parameter gradient fine-tuning (`20.49%`). However, because `alpha=0.05` (`||ΔW||_F = 2.28`) was applied directly to the shared `pw2.weight` without null-space projection against other phonemes, it caused statistically significant collateral PER regression (`NE +1.22%`, `EN +1.75%`). Under our no-regression rule, `EXP-013a` is **rejected** as a release edit. Next step (`EXP-013b`): apply a ROME/MEMIT-style null-space-projected Rank-1 edit strictly inside the Nepali-gated residual `acoustic_blocks.3.pw2.u_ne/v_ne` (zero EN collateral by construction, orthogonal to non-`b` Nepali phonemes).
+- **Honest Verdict:** The localized Rank-1 direction genuinely reduced `b -> w` confusion on 300 untouched test sentences (`19.67% -> 17.21%`), outperforming both the matched random control (`19.67%`) and same-parameter gradient fine-tuning (`20.49%`). However, because `alpha=0.05` (`||ΔW||_F = 2.28`) was applied directly to the shared `pw2.weight` without null-space projection against other phonemes, it caused statistically significant collateral PER regression (`NE +1.22%`, `EN +1.75%`). Under our no-regression rule, `EXP-013a` is **rejected** as a release edit.
+- **Post-Audit Label-Artifact Finding (Grapheme Breakdown of the 72 `b -> w` Confusions on `test.jsonl`, `n=300`):**
+  - `व`-only words: **`65 / 118` (`55.1%`)** (e.g., `व्यक्ति`, `विशेषता`, `विदामा`, `प्रवेश`, `विश्वासै`, `विधि`)
+  - `ब`-only words: **`5 / 240` (`2.1%`)** (e.g., `बसोबास`, `फोर्ब्स`, `बित्दै`, `बिसाएँ`, `बिमारीहरू`)
+  - Words containing both `व` and `ब`: **`2 / 8` (`25.0%`)** (`other: 0 / 0`)
+  - **Root cause:** `90.3%` (`65/72`, `67/72` incl. `both`) of the `b -> w` confusions originate from `व` words because `data/cache/v2` (`09:58`) and `ctc_aligner.pt` (`12:15`) predate the `व -> /b/` rule (`~14:00`) and the lexicon (`16:24`). On true `ब` words, baseline `/b/` accuracy is already `97.9%` (`235/240`).
+  - **Action:** `EXP-013b` on `b -> w` is **cancelled** (do not apply weight edits to a label-version artifact). Correct fix after `EXP-011` completes: rebuild `data/cache/v2` with the current frontend + lexicon, retrain `ctc_aligner.pt`, re-extract CTC durations, fine-tune, and re-run `make pawp-inspect` to target a genuine phoneme confusion that survives consistent labels (with bootstrap CIs on the confusion rate itself and matched dev-tuning budget for the gradient-FT control).
 
 ---
 

@@ -32,6 +32,7 @@ from pawp_tts.infrastructure.inference.streaming import OnnxStreamingExporter
 from pawp_tts.infrastructure.neural.bilingual_tts import PAWPBilingualTTS
 from pawp_tts.infrastructure.pawp.wsp_engine import (
     build_rank1_wsp_and_controls,
+    build_rome_nullspace_ne_edit,
     evaluate_ctc_per,
     load_ctc_recognizer,
     load_manifest_texts,
@@ -472,6 +473,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_we.add_argument("--layer", type=str, required=True)
     p_we.add_argument("--out-dir", type=str, default="artifacts/checkpoints/exp013_wsp")
     p_we.add_argument("--ft-steps", type=int, default=40)
+    p_we.add_argument(
+        "--rome-ne",
+        action="store_true",
+        help="Use ROME null-space Rank-1 edit strictly inside Nepali-gated u_ne/v_ne",
+    )
     p_we.add_argument("--exp-id", type=str, default="exp013-wsp-edit")
     p_we.add_argument("--log-ledger", action="store_true")
 
@@ -759,7 +765,8 @@ def _cmd_wsp_inspect(container: AppContainer, args: argparse.Namespace) -> int:
 def _cmd_wsp_edit(container: AppContainer, args: argparse.Namespace) -> int:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ne_dev = load_manifest_texts(args.dev_manifest, "ne", limit=args.n_dev, seed=42)
-    res = build_rank1_wsp_and_controls(
+    edit_fn = build_rome_nullspace_ne_edit if args.rome_ne else build_rank1_wsp_and_controls
+    res = edit_fn(
         config_path=args.config,
         base_ckpt=args.checkpoint,
         ctc_ckpt=args.ctc_ckpt,
