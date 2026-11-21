@@ -309,3 +309,27 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
   1. Transplanting only the 49,152-parameter English acoustic residual (`E3`, `3.3%` of model) cuts Code-Mixed WER from `11.99%` to `9.93%` (`-2.06%`) and CER from `4.92%` to `3.97%` with mathematically zero drift on Nepali (`9.93% / 1.97%`) and zero gradient steps.
   2. Projecting `ΔW_dur` strictly orthogonal to the top-64 Nepali activation subspace (`WSP-2`, capturing `96.5%–97.6%` of Nepali activation energy) improves English WER (`5.03% -> 4.73%`), English CER (`2.28% -> 2.02%`), Nepali CER (`1.97% -> 1.93%`), and Code-Mixed WER (`11.99% -> 11.65%`) simultaneously, decisively outperforming both naive blending (`WSP-3`) and equal-norm random edits (`R1`).
 - **Saved Separate Copies:** `artifacts/checkpoints/exp009_wsp/pawp_1_5m_wsp_e3.safetensors` and `artifacts/checkpoints/exp009_wsp/pawp_1_5m_wsp_null64.safetensors` (`exp008/best.safetensors` left completely untouched). Both passed NepTTS-Bench `100.0%` (`77/77`, `0%` Hindi `/ʃ/` bleed).
+
+---
+
+## EXP-010: Phoneme-Aware Compression Frontier (`1.5M -> 1.0M -> 750K -> 500K`, Zero-Shot Post-Training)
+
+- **Date:** 2026-11-21 · **Status:** Completed & Verified
+- **Hypothesis:** Sensitivity-guided adaptive rank allocation (`allocate_ranks_under_budget` with Fisher-weighted SVD) preserves bilingual pronunciation better than equal-budget Uniform SVD across compressed tiers (`1.0M`, `750K`, `500K`), and protecting the 513-bin complex iSTFT `decoder.head` (`1026 x 192`) is critical at the `1.0M` tier (Hypothesis D).
+- **Method:** Computed scale-invariant balanced EN/NE/Code-Mixed empirical Fisher sensitivity across all 31 compressible dense/pointwise matrices (`1,244,544` compressible params + `245,846` fixed overhead) starting from `pawp_1_5m_wsp_e3.safetensors`. Evaluated zero-shot (no recovery fine-tuning) on the live held-out ASR benchmark (`en=30, ne=30, mix=9`):
+
+| Budget Tier | Method | Unique Params | EN WER / CER | NE WER / CER | Code-Mix WER / CER |
+|---|---:|---:|---:|---:|---:|
+| **1.5M (Uncompressed)** | `PAWP-1.5M` (`WSP-E3`) | `1,490,390` | `5.03% / 2.20%` | `9.93% / 1.97%` | `9.93% / 3.97%` |
+| **1.0M** | Uniform SVD | `998,164` | `14.26% / 8.06%` | `23.06% / 10.08%` | `20.84% / 11.81%` |
+| **1.0M** | PAWP Adaptive (unprotected `dec_head`) | `986,302` | `18.79% / 12.37%` | `26.51% / 13.56%` | `32.71% / 19.51%` |
+| **1.0M** | **Decoder-Centric PAWP (`EXP-010b`)** | **`998,822`** | **`9.56% / 6.91%`** | **`22.76% / 9.73%`** | **`19.09% / 9.66%`** |
+| **750K** | Uniform SVD | `747,392` | `66.16% / 47.48%` | `63.11% / 42.31%` | `51.52% / 32.40%` |
+| **750K** | **PAWP Adaptive** | **`745,626`** | **`48.95% / 35.46%`** | **`49.57% / 29.97%`** | `53.60% / 39.18%` |
+| **500K** | Uniform SVD / PAWP (zero-shot) | `~497K` | Collapse (`>100%`) | Collapse (`>100%`) | Collapse (`>100%`) |
+
+- **Conclusions:**
+  1. At **`1.0M`** (`33%` compression, zero retraining), **Decoder-Centric PAWP** beats equal-budget Uniform SVD across every metric (`-4.70%` EN WER, `-0.30%` NE WER, `-1.75%` Code-Mix WER) and remains below the human code-mixed WER floor (`19.09%` vs. `25.91%`).
+  2. At **`750K`** (`50%` compression, zero retraining), unconstrained **PAWP Adaptive** beats Uniform SVD by `-17.21%` EN WER and `-13.54%` NE WER.
+  3. At **`500K`** (`67%` compression), zero-shot one-shot SVD collapses for both methods, confirming that `500K` and `300K` tiers require recovery distillation or co-training from compact shared-basis architectures (`configs/student_1m_pawp.yaml` and smaller).
+- **Saved Checkpoint:** `artifacts/checkpoints/exp010_compress/pawp_1m_dc_zeroshot.safetensors`.
