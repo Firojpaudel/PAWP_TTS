@@ -65,7 +65,7 @@ flowchart LR
     end
 
     subgraph BACKEND ["Neural synthesis backend (1.49M parameters)"]
-        M["PAWP student<br/>text encoder · variance adaptor ·<br/>acoustic net · iSTFT decoder"]
+        M["PAWP-1.5M Architecture<br/>text encoder · variance adaptor ·<br/>acoustic net · iSTFT decoder"]
     end
 
     W(["24 kHz waveform"])
@@ -75,12 +75,12 @@ flowchart LR
     M --> W
 ```
 
-The deterministic frontend carries no learned parameters (pronunciation lexicons, phonological rules, and text normalization). Everything learned sits strictly inside the 1.49M-parameter neural student graph, which is detailed below.
+The deterministic frontend carries no learned parameters (pronunciation lexicons, phonological rules, and text normalization). Everything learned sits strictly inside the 1.49M-parameter PAWP neural architecture, detailed below.
 
-### Student model architecture
+### PAWP-1.5M neural architecture
 
 <p align="center">
-  <img src="docs/figures/architecture.svg" alt="PAWP-TTS student architecture: embeddings, text encoder with language-gated residuals, variance adaptor, acoustic network and iSTFT waveform decoder, with parameter counts" width="100%">
+  <img src="docs/figures/architecture.svg" alt="PAWP-TTS architecture: embeddings, text encoder with language-gated residuals, variance adaptor, acoustic network and iSTFT waveform decoder, with parameter counts" width="100%">
 </p>
 
 | Component | Parameters | Share |
@@ -109,7 +109,7 @@ flowchart LR
     FE --> CTC["CTC phoneme recognizer<br/>(training-only)"]
     FX --> CTC
     CTC -->|"Viterbi forced alignment"| DUR["Phoneme durations"]
-    FE --> STU["Student training<br/>(BF16, RTX 4090)"]
+    FE --> STU["PAWP model training<br/>(BF16, RTX 4090)"]
     FX --> STU
     DUR --> STU
     STU --> EVAL["Held-out evaluation:<br/>ASR WER/CER vs. human recordings"]
