@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from pawp_tts.domain.entities.models import ExperimentRecord, LanguageCode
+from pawp_tts.domain.evaluation.frontend_validation import GOLD_300_CASES
 from pawp_tts.domain.ports.interfaces import AsrEvaluatorPort
 from pawp_tts.infrastructure.data.bulk_cache import (
     build_extra_nepali_manifest,
@@ -55,7 +56,29 @@ def _cmd_frontend(container: AppContainer, args: argparse.Namespace) -> int:
         sib_seq = container.phonemize.execute("शहर सस्तो षड्यन्त्र")
         if "ʃ" in sib_seq.symbols:
             raise AssertionError("Hindi sibilant /ʃ/ bleed detected in Nepali frontend!")
-        print("Frontend validation passed.")
+
+        # Validate 300-word native gold Kathmandu pronunciation sample
+        gold_passed = 0
+        gold_failures: list[str] = []
+        for g_case in GOLD_300_CASES:
+            g_seq = container.phonemize.execute(g_case.word)
+            # filter out <bos> and <eos>
+            g_syms = tuple(s for s in g_seq.symbols if not s.startswith("<"))
+            if g_syms == g_case.expected_ipa:
+                gold_passed += 1
+            else:
+                gold_failures.append(
+                    f"{g_case.word} ({g_case.pos}): exp={' '.join(g_case.expected_ipa)} got={' '.join(g_syms)}"
+                )
+        print(
+            f"[Gold 300 Native Sample] {gold_passed}/{len(GOLD_300_CASES)} passed "
+            f"({gold_passed / len(GOLD_300_CASES) * 100:.1f}%)"
+        )
+        if gold_failures:
+            print("First 5 mismatches:\n  " + "\n  ".join(gold_failures[:5]))
+            raise AssertionError(f"Gold sample failures: {len(gold_failures)}/300")
+
+        print("Frontend validation passed successfully.")
         return 0
 
     if not args.text:
@@ -372,6 +395,9 @@ def build_parser() -> argparse.ArgumentParser:
         p_tr.add_argument("--train-splits", type=str, default="train,train_extra")
         p_tr.add_argument("--replay-items", type=int, default=0)
         p_tr.add_argument("--init-from", type=str, default=None)
+        p_tr.add_argument("--aligner-warmup", type=int, default=0)
+        p_tr.add_argument("--fresh-aligner", action="store_true")
+        p_tr.add_argument("--prosody-free-prob", type=float, default=0.0)
         p_tr.add_argument("--seed", type=int, default=42)
         p_tr.add_argument("--exp-id", type=str, default="exp003-train")
         p_tr.add_argument("--log-ledger", action="store_true")
@@ -444,6 +470,9 @@ def _cmd_train(_container: AppContainer, args: argparse.Namespace) -> int:
         train_splits=tuple(args.train_splits.split(",")),
         replay_items=args.replay_items,
         init_from=args.init_from,
+        aligner_warmup=args.aligner_warmup,
+        fresh_aligner=args.fresh_aligner,
+        prosody_free_prob=args.prosody_free_prob,
     )
     print(f"Training summary [{args.config}]: {stats}")
     if args.log_ledger:
