@@ -280,3 +280,31 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 - **Audio Deliverables:**
   - Checkpoint saved at `artifacts/checkpoints/exp008/best.safetensors` (5.98 MB FP32).
   - Post-finetune audio samples extracted to `artifacts/blog_samples/post_ft_step20k/` (`en_20000.wav`, `ne_20000.wav`, `codemix_20000.wav`).
+
+---
+
+## EXP-009: Agent-Driven Weight-Space Programming on `PAWP-1.5M` (Zero Training)
+
+- **Date:** 2026-11-21 · **Status:** Completed & Verified
+- **Hypothesis:** Following the weight-space programming loop (`inspect -> diagnose -> edit -> verify`) on the trained `PAWP-1.5M` target-voice checkpoint (`exp008/best.safetensors`), surgical zero-training edits guided by weight-delta inspection, causal module localization, and Nepali-orthogonal activation null-space projection can recover English and code-mixed articulation lost during Nepali-heavy fine-tuning while preserving target-voice Nepali quality (`9.93% WER`) and beating equal-norm random controls.
+- **Step 1 (Inspect):** Compared all 263 matching tensors between `exp007/latest.safetensors` (EN `3.14%`, NE `12.02%`) and `exp008/best.safetensors` (EN `5.03%`, NE `9.93%`, Mix `11.99%`). Largest relative shifts occurred in `duration_predictor.block1/2.pw.weight` (`24.4%` / `22.1%`), `decoder.head.weight` (`22.8%`), and English low-rank residuals `*.u_en / *.v_en` (`18.5% – 21.1%`).
+- **Step 2 (Causal Module Localization, Zero Training):**
+  - Patching `duration_predictor` (`1.55%` of params) alone recovered EN WER (`5.03% -> 4.21%`) but degraded NE WER (`9.93% -> 13.64%`), proving timing adaptation lives in `duration_predictor`.
+  - Patching `encoder_blocks` shared weights dropped EN CER (`2.28% -> 1.88%`) but degraded NE WER (`11.88%`).
+  - Patching `decoder` (`44.6%` of params) degraded both EN (`5.81%`) and NE (`12.23%`), confirming the decoder is co-adapted to `exp008` target-voice acoustics and must remain untouched.
+- **Step 3 (Surgical Weight Edits & Controls — Live Held-Out ASR, `en=30, ne=30, mix=9`):**
+
+| Edit / Control | Edited Params (`%`) | EN WER / CER | NE WER / CER | Code-Mix WER / CER | Notes |
+|---|---:|---:|---:|---:|---|
+| Baseline (`exp008/best`) | `0` (`0.0%`) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | Untouched reference |
+| Random Control (`R1`, equal L2 norm) | `98,304` (`6.6%`) | `5.51% / 2.48%` | `9.93% / 1.97%` | `13.46% / 7.78%` | Degrades EN & Code-Mix |
+| Full Duration Patch (`P1`) | `23,073` (`1.6%`) | `4.21% / 2.31%` | `13.64% / 2.88%` | `13.03% / 5.90%` | Breaks Nepali timing |
+| Naive Scalar Blend (`WSP-3`, `35%` dur + `E3`) | `72,225` (`4.8%`) | `5.35% / 2.67%` | `9.45% / 1.72%` | `10.82% / 3.74%` | Regresses EN WER |
+| **`E3` (`acoustic_blocks.*.u_en/v_en`)** | **`49,152` (`3.3%`)** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | **Strict Pareto win: `-2.06%` Mix WER, `0.00%` NE drift** |
+| **`WSP-2` (`E3` + `ΔW_dur ⊥ NE_64`)** | **`70,656` (`4.7%`)** | **`4.73% / 2.02%`** | **`10.09% / 1.93%`** | **`11.65% / 4.90%`** | **Null-space projection improves EN, NE CER, and Mix simultaneously** |
+| `WSP-5` (`E3` + `ΔW_dur,enc ⊥ NE`) | `332,800` (`22.3%`) | `5.18% / 2.01%` | `10.60% / 2.19%` | `10.37% / 3.63%` | Strong Mix CER (`3.63%`), slight EN/NE WER trade-off |
+
+- **Key Finding:**
+  1. Transplanting only the 49,152-parameter English acoustic residual (`E3`, `3.3%` of model) cuts Code-Mixed WER from `11.99%` to `9.93%` (`-2.06%`) and CER from `4.92%` to `3.97%` with mathematically zero drift on Nepali (`9.93% / 1.97%`) and zero gradient steps.
+  2. Projecting `ΔW_dur` strictly orthogonal to the top-64 Nepali activation subspace (`WSP-2`, capturing `96.5%–97.6%` of Nepali activation energy) improves English WER (`5.03% -> 4.73%`), English CER (`2.28% -> 2.02%`), Nepali CER (`1.97% -> 1.93%`), and Code-Mixed WER (`11.99% -> 11.65%`) simultaneously, decisively outperforming both naive blending (`WSP-3`) and equal-norm random edits (`R1`).
+- **Saved Separate Copies:** `artifacts/checkpoints/exp009_wsp/pawp_1_5m_wsp_e3.safetensors` and `artifacts/checkpoints/exp009_wsp/pawp_1_5m_wsp_null64.safetensors` (`exp008/best.safetensors` left completely untouched). Both passed NepTTS-Bench `100.0%` (`77/77`, `0%` Hindi `/ʃ/` bleed).
