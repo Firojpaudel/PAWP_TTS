@@ -10,11 +10,23 @@
 | `PiVo-1.4M` (external reference) | `1,401,562` | `1,401,562` | `1,401,562` | `5.6 MB` FP32 | — | English-only, 16 kHz FARGAN vocoder |
 | `sanoTTS` `heart-nano` (external reference) | `294,279` | `294,279` | `294,279` | `337 KB` INT8 | — | English-only, 24 kHz ConvNeXt1D+iSTFT |
 
-## 2. Bilingual Pronunciation & Linguistic Fidelity (`WER` / `CER` / `PER` / `NepTTS-Bench`)
+## 2. Bilingual Pronunciation & Linguistic Fidelity (`WER` / `CER` / `NepTTS-Bench`)
 
-| Model | EN Suite Valid / `0-<unk>` | NE Suite Valid / `0-<unk>` | NepTTS-Bench (77 minimal pairs) | Code-Mix Valid / `0-<unk>` | Training Loss (`init -> best`) | Notes |
+### Held-Out Test Set ASR Evaluation (Live Speech Recognizer Floor Comparison)
+
+*Scored across 30 held-out sentences per language against the live ASR pipeline with dual ground-truth transcription floor.*
+
+| Model & Checkpoint | English ASR WER / CER | Nepali ASR WER / CER | Code-Mixed ASR WER / CER | NepTTS-Bench (77 pairs) | Status |
+|---|---|---|---|---|---|
+| **Human Ground-Truth Audio Floor** | `2.6% / 0.8%` | `11.6% / 3.8%` | `25.9% / 12.9%` | — | Ground truth human studio speech |
+| **`PAWP-1.5M` (Pre-FT Base, Step 92k)** | **`3.1% / 1.0%`** | **`12.0% / 3.1%`** | **`16.2% / 11.0%`** | **`100.0%`** (0% Hindi bleed) | Base multi-speaker centroid checkpoint |
+| `PAWP-1.5M` (Target-Voice Fine-Tuned) | *training (`exp008-ft`)* | *training (`exp008-ft`)* | *training (`exp008-ft`)* | *pending* | Running on single-speaker target voice |
+
+### Phonological & Contrast Benchmarks
+
+| Model | EN Suite Valid / `0-<unk>` | NE Suite Valid / `0-<unk>` | NepTTS-Bench (77 minimal pairs) | Code-Mix Valid / `0-<unk>` | Validation `val_mel` | Notes |
 |---|---:|---:|---:|---:|---:|---|
-| `PAWP-1.5M` (Stage-3 trained checkpoint) | `100% / 100%` (`10/10`) | `100% / 100%` (`10/10`) | **`100.0%` (`77/77`)** phonological & acoustic contrast (`0%` Hindi `/ʃ/` bleed) | `100% / 100%` (`10/10`) | `92.71 -> 34.54` (`mel L1=1.51`) | Trained on RTX 4090 `BF16` (`40+30` steps, `1.53 GB` VRAM) |
+| `PAWP-1.5M` (Step 92k Pre-FT) | `100% / 100%` (`10/10`) | `100% / 100%` (`10/10`) | **`100.0%` (`77/77`)** | `100% / 100%` (`10/10`) | **`0.8009`** | Free-running prosody (`p=0.5`), 0% Hindi `/ʃ/` bleed |
 
 ## 3. Real-Hardware Latency & Resource Efficiency (`p50` / `p95` / `p99`)
 
