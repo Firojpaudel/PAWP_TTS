@@ -4,7 +4,6 @@ Systematic survey of the 26 most relevant papers, architectures, compression met
 
 | # | Work / System | Date | Reference | Core Architecture / Method | Key Findings & Limitations for PAWP |
 |---:|---|---|---|---|---|
-| 1 | **Ampixa sanoTTS** | 2025–2026 | [GitHub](https://github.com/Ampixa/sanoTTS), [Anatomy](https://ampixa.com/sanotts/anatomy/) | `294K` (`heart-nano`, 337 KB INT8) – `2.27M`; 100-mel @ 24 kHz → ConvNeXt1D → 513-bin iSTFT | Demonstrates sub-300K intelligible 24 kHz iSTFT TTS on ESP32/WASM; quality drops steeply at 294K vs. larger variants; uses fixed uniform capacity |
 | 2 | **PiVo-1.4M** | 2026 | [Empero](https://empero.org/research/pivo/), [HF](https://huggingface.co/empero-ai/PiVo-1.4M) | `1,401,562` total params (`585K` acoustic @ 10 ms + `817K` FARGAN vocoder @ 16 kHz, 2.5 ms subframes) | Strongest full-graph 1.4M English CPU streaming baseline (Apache-2.0 / BSD); 16 kHz only, monolingual English |
 | 3 | **NepTTS-Bench & NepaliMOS** | 2026 | [arXiv:2611.03718](https://arxiv.org/abs/2611.03718) | `205` sentences, `77` minimal pairs, `180` native raters (`6,962` ratings), `IndicWav2Vec` MOS predictor | Exposes Hindi phonological bleed missed by SCOREQ; NepaliMOS $\rho=0.90$ dense but $\rho=0.43$ LOSO (proxy only, not human replacement) |
 | 4 | **FARGAN** (Valin, Xiph) | 2024 | Xiph / Opus | `~820K` params, `~600` MFLOPS, 20-dim features (18 BFCC + pitch + voicing), 2.5 ms subframes @ 16 kHz | Ultra-low-FLOP streaming neural vocoder; natively 16 kHz (scaling to 24 kHz alters subframe compute) |

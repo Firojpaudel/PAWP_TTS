@@ -7,7 +7,7 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 ## EXP-000: Milestone 1 — Clean Architecture Bootstrap, Exact Budget Audit & Frontend/ASR Verification
 - **Status:** Completed & Verified
 - **Hypothesis:** A Clean Architecture bilingual `PAWP-1.5M` blueprint (`<= 1,500,000` total deployed parameters including embeddings, variance predictors, token-gated bilingual residuals, and 24 kHz ConvNeXt1D+iSTFT decoder) can enforce strict layer isolation, preserve Nepali and English phonological contrasts (without Hindi bleed), support seamless code-mixing, and verify end-to-end ASR evaluation readiness while keeping storage lean via zero-copy dataset symlinks.
-- **Baseline:** Reference budget `1,500,000` (`PAWP-1.5M`), external compact references `PiVo-1.4M` (`1,401,562`) and `sanoTTS` (`294,279`–`2.27M`), and open-weight `OmniVoice` teacher checkpoint (`1,015,378,394` combined parameters across LM + audio tokenizer).
+- **Baseline:** Reference budget `1,500,000` (`PAWP-1.5M`), external compact reference `PiVo-1.4M` (`1,401,562`), and a large open-weight teacher checkpoint (`1,015,378,394` combined parameters across LM + audio tokenizer).
 - **Method:**
   1. Implemented Clean Architecture package `src/pawp_tts/{domain,application,infrastructure,interfaces}` with `import-linter` and AST import boundary checks.
   2. Implemented deterministic EN/NE/CodeMix phonological frontend (`128`-symbol unified IPA + `28`-dim articulatory features; Nepali sibilant merger `स/श/ष -> /s/`, alveolar affricates `/ts, tsʰ, dz, dzʰ/`, 4-way laryngeal stop contrast, gemination, post-vocalic retroflex flapping, morpho-syntactic schwa syncope, clitic/hyphen/context-numeral code-mix routing, and coarticulatory boundary blending).
@@ -177,3 +177,55 @@ Continuous log of all PAWP-TTS research milestones, ablations, verified measurem
 - **Fine-tune split at launch:** 13,037 items: 3.25 h EN, 3.33 h NE, 19.57 h code-mix. The target-voice share grows as EXP-004 completes, via rebuild and resume.
 - **Code-mix evaluation:** a local mixed-script recognizer scores code-mixed audio. On 8 code-mixed clips with English words, CER fell from 0.29 to 0.03 and from 0.22 to 0.00 relative to the native-script ASR, and was unchanged on Devanagari-only clips. This is a small spot check, not a benchmark.
 - **Evaluation plan:** `make eval-heldout` (EN/NE via the primary ASR, code-mix via the mixed-script ASR, each against human-recording baselines), plus wandb audio samples every 2k steps.
+
+---
+
+## EXP-003 Result: Base Model Unintelligible — Root Cause: Aligner Collapse
+
+- **Held-out ASR evaluation** (`make eval-heldout`, checkpoint at step 22k):
+
+| Suite | Synth WER / CER | Human recordings WER / CER |
+|---|---|---|
+| English (n=30) | 1.48 / 1.08 | 0.02 / 0.01 |
+| Nepali (n=30) | 1.00 / 0.92 | 0.13 / 0.04 |
+| Code-mix (n=9) | 1.00 / 0.98 | 0.26 / 0.13 |
+
+- **Stage isolation** (4 val utterances; CER against ASR of the ground-truth audio):
+
+| Path | CER |
+|---|---|
+| Vocoder only (GT mel → decoder) | 0.00–0.16 (decoder works) |
+| Teacher-forced (aligner durations + GT F0/energy) | 0.55–0.72 (acoustic mapping fails) |
+| Free-running | 0.73–3.85 |
+
+- **Root cause:** the jointly trained aligner had collapsed. The median duration was 1 frame and a few vowels absorbed 48–148 frames. The acoustic model therefore learned a smeared text→mel mapping.
+- **Contributing factors (all fixed in code):** the aligner ran under BF16 autocast; it shared gradient clipping with the much larger model gradients (effective aligner LR cut about 10×); and its durations were consumed from step 0. Overfitting a single batch shows the aligner passes through a transient collapse (78% of tokens at 1 frame) before recovering (37% after 800 steps). It needs a long aligner-only warm-up.
+- **Conclusion:** EXP-003/EXP-005 checkpoints are not usable as speech models; EXP-005 was stopped. The decoder weights are kept.
+- **Lesson:** monitor `dur_one_frac` (share of non-boundary tokens with 1-frame duration), now logged every 100 steps, and gate acoustic training on alignment health.
+
+## EXP-006: Retrain with Healthy Alignment (all data, single target voice)
+
+- **Status:** running. **Init:** EXP-003 weights (decoder included) with a fresh aligner.
+- **Method:** 15k aligner-only warm-up steps (FP32 aligner, normalized mel, separate clipping), then joint training. Splits: train + train_extra + train_ft (single-voice corpus + code-mix supplement). 60k steps; GAN from start (pretrained discriminators). Export collapsed to the target voice.
+- **Go/no-go gate:** `dur_one_frac` must fall well below its collapsed level before the acoustic phase. Teacher-forced CER at the first evaluation must be clearly below EXP-003's 0.55–0.72.
+
+---
+
+## EXP-007: CTC Forced-Alignment Durations (replaces jointly learned aligner)
+
+- **Date:** 2026-11-21 · **Status:** training (60k steps)
+- **Why:** the attention aligner (EXP-006) stayed collapsed on full mixed data. This held across optimizer settings and attention temperatures from 0.0005 to 0.05: 75–80% of tokens got 1 frame and CTC stayed at ≈7.6. Audio–text pairing in the cache was verified by ASR spot checks (CER mostly 0–0.04), which rules out data mismatch.
+- **Method:** a training-only CTC phoneme recognizer (3×conv + 2-layer BiGRU, `neural/ctc_aligner.py`), 6k steps (6.1 min), final CTC ≈1.0. Viterbi forced alignment gives per-token frame durations for all 123k training and 400 val items, cached under `durations/`. The student trains on these fixed durations and is initialized from EXP-003 (decoder kept).
+- **Alignment health** (share of inner tokens with 1 frame, mostly word-boundary tokens): train 0.162, train_extra 0.138, train_ft 0.131, val 0.157. The collapsed aligner was at ≈0.76. Median phoneme duration is 5 frames (50 ms).
+- **Interim result, step-24k checkpoint, held-out ASR (n=10/10/9):**
+
+| Suite | EXP-003 (collapsed) WER / CER | EXP-007 @24k WER / CER | Human WER / CER |
+|---|---|---|---|
+| English | 1.48 / 1.08 | 0.62 / 0.42 | 0.01 / 0.00 |
+| Nepali | 1.00 / 0.92 | 0.78 / 0.45 | 0.16 / 0.06 |
+| Code-mix | 1.00 / 0.98 | 0.74 / 0.56 | 0.26 / 0.13 |
+
+- **Validation mel L1:** 0.796 (EXP-003 ≈0.91).
+- **Interpretation:** with correct alignment the student partially speaks (CER roughly halved), so the acoustic architecture can learn. Intelligibility is still far from the human reference. Final results are pending at 60k steps.
+- **Remaining-gap diagnosis (step ≈26k, 6 val utterances, CER against ASR of the ground truth):** teacher-forced (GT durations + GT F0/energy) 0.01–0.09; GT durations with predicted F0/energy 0.15–0.43; free-running 0.03–0.67. The acoustic network and decoder are therefore near-intelligible. The bottleneck is train/inference mismatch in **prosody conditioning**: the network was trained only on ground-truth F0/energy, and validation energy L1 is ≈1.5. Listening confirms the model speaks but mispronounces and runs words together.
+- **Change (from step 28k):** `--prosody-free-prob 0.5`, so on half of the training steps the acoustic network is conditioned on its own predicted F0/energy. The run is extended to 100k steps. Validation stays teacher-forced so `val_mel` remains comparable with earlier runs. The held-out ASR evaluation runs at the end.

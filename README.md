@@ -8,10 +8,17 @@
 > Numbers without a logged experiment should not be cited.
 
 PAWP-TTS asks one question: *how few neural parameters does natural, streaming,
-bilingual English–Nepali speech need, if those parameters are shared, decomposed and
-allocated according to phonetic sensitivity?* The target is a complete deployed
-inference graph, decoder/vocoder included, of **≤ 1.5M parameters**, followed by
-controlled compression toward **300K**.
+bilingual English–Nepali speech need, if an AI agent can read and program those weights
+directly?* Following the **weight-space programming** idea
+([concept](https://rikiyat.github.io/blog/weight-space-programming/)), the trained network
+is treated like a program: the agent inspects which weights carry which phonetic
+contrasts, then makes targeted, measured edits to fix pronunciation failures, separate or
+transfer language behaviour, and compress capacity. Gradient training is not the only tool.
+Shared weight bases, gated language residuals and phonetic sensitivity maps are the
+structured edit space it uses.
+
+The target is a complete deployed inference graph, decoder/vocoder included, of
+**≤ 1.5M parameters**, followed by controlled compression toward **300K**.
 
 ---
 
@@ -22,7 +29,7 @@ controlled compression toward **300K**.
 | M1 | Clean Architecture bootstrap, unified EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
 | M2 | Bilingual manifests and splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
 | M3 | Shared-basis PAWP modules, full-scale training pipeline, ASR-based evaluation | **in progress**: first full-scale training run ([EXP-003](docs/EXPERIMENTS.md)) |
-| M4 | Phonetic sensitivity maps, budget-constrained rank allocation, error-driven regrowth, 1M→300K sweep | planned |
+| M4 | Agent-driven weight programming (inspect → diagnose → edit → verify) on an intelligible student, plus phonetic sensitivity maps, budgeted rank allocation and the 1M→300K sweep | planned |
 | M5 | ONNX FP32/INT8 export and parity, multi-axis Pareto scorecard, release | planned |
 
 No speech-quality results have been published yet. Intelligibility (ASR WER/CER), naturalness and latency
@@ -43,21 +50,68 @@ Only verified, reproducible observations are listed. Details and caveats are in 
 
 ## How it works
 
-```text
-text (EN / NE / code-mixed)
-  └─ deterministic frontend: normalization → EN eSpeak G2P | NE rule G2P → code-mix span router
-       └─ unified phonological tokens (phoneme, language, stress, boundaries)
-            └─ phoneme + 28-dim articulatory embeddings
-                 └─ ConvNeXt1D encoder with token-gated EN/NE low-rank residuals (optional shared bases)
-                      └─ duration → length regulator → pitch/energy → frame acoustic network
-                           └─ ConvNeXt1D + iSTFT decoder (24 kHz) → streaming PCM
+### Inference pipeline
+
+```mermaid
+flowchart LR
+    T["Text<br/>EN · NE · code-mixed"] --> R{"Script & language<br/>span router"}
+    R -->|Latin| EN["English G2P<br/>(eSpeak NG)"]
+    R -->|Devanagari| NE["Nepali rule G2P<br/>(schwa deletion, gemination,<br/>affricates, स/श/ष → s)"]
+    EN --> U["Unified phoneme tokens<br/>phoneme · language · stress · boundaries"]
+    NE --> U
+    U --> M["PAWP student<br/>1.49M parameters"]
+    M --> W["24 kHz waveform"]
+    classDef det fill:#eef,stroke:#88a;
+    class R,EN,NE,U det;
 ```
 
-- **Frontend** ([domain/phonology](src/pawp_tts/domain/phonology/)): Nepali rules keep native contrasts: alveolar affricates /ts tsʰ dz dzʱ/, स/श/ष → /s/, four-way laryngeal stops, dental vs. retroflex, gemination, intervocalic flapping, /ɦ/-deletion breathiness, and schwa syncope.
-- **Acoustic model + decoder** ([infrastructure/neural](src/pawp_tts/infrastructure/neural/)): non-autoregressive, bounded lookahead, BF16 training.
-- **Weight programming** ([infrastructure/weight_programming](src/pawp_tts/infrastructure/weight_programming/)): shared weight bases `W_l = Σ_k a_lk B_k + U_l V_l`, language-gated residuals with exact monolingual folding, and 4-metric parameter audits.
-- **Training** ([infrastructure/training](src/pawp_tts/infrastructure/training/trainer.py)): learned alignment, masked losses, teacher-forced prosody, validation-selected checkpoints, and full resume. Training is multi-speaker; the exported graph keeps **one** speaker vector.
-- **Evaluation** ([infrastructure/evaluation](src/pawp_tts/infrastructure/evaluation/)): ASR WER/CER on held-out sentences for synthesized vs. human audio, so recognizer errors are separated from TTS errors. Code-mixed audio is scored by a mixed-script recognizer.
+The blue stages are deterministic code with no learned parameters. Everything learned sits inside the 1.49M-parameter student, which is detailed below.
+
+### Student model architecture
+
+<p align="center">
+  <img src="docs/figures/architecture.svg" alt="PAWP-TTS student architecture: embeddings, text encoder with language-gated residuals, variance adaptor, acoustic network and iSTFT waveform decoder, with parameter counts" width="100%">
+</p>
+
+| Component | Parameters | Share |
+|---|---:|---:|
+| Embeddings and conditioning | 18,432 | 1.2% |
+| Text encoder (4 ConvNeXt1D blocks + language residuals) | 366,608 | 24.6% |
+| Duration, pitch and energy predictors, length regulator | 62,372 | 4.2% |
+| Acoustic network + mel head | 378,208 | 25.4% |
+| Waveform decoder (ConvNeXt1D + iSTFT, Vocos-style) | 664,770 | 44.6% |
+| **Total deployed inference graph** | **1,490,390** | **100%** |
+
+**Key design choices**
+
+- **Non-autoregressive and parallel.** All frames are generated at once from explicit durations, so the model cannot skip, repeat or hallucinate words.
+- **Bounded lookahead.** Every convolution looks at most 1 frame (10 ms) into the future, which allows chunked streaming with low time-to-first-audio.
+- **Language-gated residuals.** Shared weights carry general speech knowledge. Small EN- and NE-specific low-rank residuals are switched per token by the frontend's language tags, which is what makes code-mixed sentences possible. For monolingual use, the residual can be folded into the shared weights at load time, with no runtime cost.
+- **One target voice.** Training uses many speakers, but the exported model keeps a single speaker vector.
+- **Objective.** Regression (L1 log-mel + multi-resolution STFT) plus a GAN (multi-period and multi-resolution discriminators) for waveform realism. It is not a diffusion or flow-matching model. That keeps inference to a single forward pass.
+
+### Training pipeline
+
+```mermaid
+flowchart LR
+    DATA["~225 h audio + text<br/>(NE · EN · code-mix)"] --> FE["Frontend → phoneme tokens"]
+    DATA --> FX["Features: 80-bin log-mel,<br/>F0/voicing, energy"]
+    FE --> CTC["CTC phoneme recognizer<br/>(training-only)"]
+    FX --> CTC
+    CTC -->|"Viterbi forced alignment"| DUR["Phoneme durations"]
+    FE --> STU["Student training<br/>(BF16, RTX 4090)"]
+    FX --> STU
+    DUR --> STU
+    STU --> EVAL["Held-out evaluation:<br/>ASR WER/CER vs. human recordings"]
+    STU --> WSP["Weight-space programming<br/>(inspect → diagnose → edit → verify)"]
+    WSP --> EVAL
+```
+
+Code: frontend in [domain/phonology](src/pawp_tts/domain/phonology/), model in
+[infrastructure/neural](src/pawp_tts/infrastructure/neural/), training in
+[infrastructure/training](src/pawp_tts/infrastructure/training/trainer.py),
+alignment in [ctc_aligner.py](src/pawp_tts/infrastructure/neural/ctc_aligner.py),
+and evaluation in [infrastructure/evaluation](src/pawp_tts/infrastructure/evaluation/).
 
 ## Code layout (Clean Architecture)
 
@@ -104,6 +158,7 @@ never copied.
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
 | [docs/LITERATURE.md](docs/LITERATURE.md) | Related work |
 | [docs/NOVELTY.md](docs/NOVELTY.md) | Closest prior work and claimed deltas for each contribution |
+| [docs/PHONOLOGY.md](docs/PHONOLOGY.md) | Nepali pronunciation rules used by the frontend, each with its source |
 
 ## Data and licensing notes
 

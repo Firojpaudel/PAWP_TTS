@@ -4,8 +4,16 @@
 
 ### Established Techniques (No Novelty Claimed)
 - Non-autoregressive duration/pitch/energy variance adaptors (`FastSpeech 2`, `FastPitch`).
-- ConvNeXt1D + iSTFT Fourier-domain vocoding (`Vocos`, `sanoTTS`) and FARGAN linear-prediction vocoding (`PiVo-1.4M`).
+- ConvNeXt1D + iSTFT Fourier-domain vocoding (`Vocos`) and FARGAN linear-prediction vocoding (`PiVo-1.4M`).
 - Global Fisher-weighted SVD (`FWSVD`), unweighted cross-layer SVD basis sharing (`Basis Sharing`), uniform shared+low-rank reparameterization (`ResidualTransformer`), adaptive LoRA rank pruning (`AdaLoRA`), unstructured dynamic sparse training (`RigL`), and articulatory phonological embeddings (`IMS Toucan`).
+
+- Weight-space programming as a concept: an AI agent reads a network's weights like a program and edits them without gradients ([Weight-Space Programming](https://rikiyat.github.io/blog/weight-space-programming/), 2026; demonstrated on LLMs, RL policies and diffusion models). Related: knowledge editing (ROME/MEMIT), activation steering, and mechanistic interpretability.
+
+### Core Hypothesis: Agent-Driven Weight Programming for Compact Bilingual TTS
+
+| Proposed Contribution | Closest Prior Work | Delta | Evidence Required to Support vs. Falsify |
+|---|---|---|---|
+| **0. Agent-driven, measurement-guided weight edits that repair phonetic failures in a compact TTS model** | Weight-space programming (LLM/RL/diffusion), ROME/MEMIT, activation steering | Applies inspect → diagnose → edit → verify to *speech* failures: dental/retroflex confusion, Hindi /ʃ/ bleed, code-mix timbre seams, duration errors. Uses structured edit operators (direction removal, rank-1 updates, residual-subspace transplant, basis-coefficient edits) on a fixed forward-pass budget | Edits must improve the targeted metric (minimal-pair accuracy, PER, speaker similarity) on **held-out** data without regressions. They must beat random edits of equal size and match or beat equal-budget gradient fine-tuning. Falsified if gains vanish on held-out data or fail to beat gradient baselines. Note: this applies only to a model that already speaks intelligibly; editing cannot add missing ability |
 
 ### Proposed PAWP Contributions & Experimental Validation Criteria
 
