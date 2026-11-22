@@ -150,29 +150,34 @@ def fig_intelligibility() -> str:
 
 # ------------------------------------------------------------------ Fig: shared vs dense
 def fig_shared_dense() -> str:
-    # EXP-015b/c paired bootstrap (shared - dense), n = 300 NE + 300 EN untouched test, seed 42
-    rows = [("Nepali PER", 0.974, 0.555, 1.408), ("English PER", 1.896, 1.439, 2.346)]
-    w, h = W1, 108
+    # EXP-015b/c, artifacts/reports/exp015bc_multiseed_test300.json: test PER (shared - dense), pp,
+    # n = 300 NE + 300 EN untouched test, seeds 42 / 101 / 202.
+    rows = [("Nepali PER", [0.744, 0.843, 0.877]), ("English PER", [1.848, 0.788, 1.043])]
+    w, h = W1, 118
     x0, x1 = 118, w - 66
-    lo, hi = -1.0, 3.0
+    lo, hi = -0.5, 2.5
 
     def sx(v: float) -> float:
         return x0 + (x1 - x0) * (v - lo) / (hi - lo)
 
     b: list[str] = []
-    top = 16
-    for k in [-1, 0, 1, 2, 3]:
-        b.append(line(sx(k), top, sx(k), top + 50, BASE if k == 0 else GRID, 1.0 if k == 0 else 0.8))
-        b.append(t(sx(k), top + 61, f"{k:+d}" if k else "0", 7.5, GRAY, "middle"))
-    for i, (lab, m, a, c) in enumerate(rows):
-        y = top + 14 + i * 22
+    top = 26
+    for k in [0, 1, 2]:
+        b.append(line(sx(k), top - 8, sx(k), top + 50, BASE if k == 0 else GRID, 1.0 if k == 0 else 0.8))
+        b.append(t(sx(k), top + 62, f"{k:+d}" if k else "0", 7.5, GRAY, "middle"))
+    b += legend(18, 12, [("each seed", GRAY), ("mean of 3 seeds (tick)", ORANGE)], gap=12)
+    for i, (lab, vals) in enumerate(rows):
+        y = top + 10 + i * 26
+        m = sum(vals) / len(vals)
         b.append(t(x0 - 8, y + 3, lab, 8.2, INK, "end"))
-        b.append(line(sx(a), y, sx(c), y, ORANGE, 2.0))
-        b.append(f'<circle cx="{sx(m):.1f}" cy="{y}" r="4.2" fill="{ORANGE}" stroke="#fff" stroke-width="1.5"/>')
-        b.append(t(sx(c) + 6, y + 3, f"+{m:.2f} pp", 7.5, INK2))
+        b.append(line(sx(min(vals)), y, sx(max(vals)), y, GRAY_L, 2.0))
+        b.append(line(sx(m), y - 8, sx(m), y + 8, ORANGE, 2.6))
+        for v in vals:
+            b.append(f'<circle cx="{sx(v):.1f}" cy="{y}" r="3.4" fill="{GRAY}" stroke="#fff" stroke-width="1.2"/>')
+        b.append(t(sx(max(vals)) + 7, y + 3, f"+{m:.2f} pp", 7.5, INK2))
     b.append(t(sx(0) - 4, top + 78, "← shared better", 7.2, GRAY, "end"))
     b.append(t(sx(0) + 4, top + 78, "dense better →", 7.2, GRAY))
-    return svg(w, h, b)
+    return svg(w, h + 10, b)
 
 
 # ------------------------------------------------------------------ Fig: WSP forest plot

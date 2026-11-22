@@ -23,6 +23,7 @@ Table~\ref{tab:params} summarizes the 4-metric parameter footprint and held-out 
 \label{tab:params}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{@{}lrrrrrrr@{}}
 \toprule
 Model (\texttt{v3}) & Unique / Total & FP32 & EN ASR & NE ASR & Mix ASR & Test NE / EN & CTC 77-Pair \\
@@ -33,7 +34,7 @@ Human Floor (ASR) & --- & --- & 2.63 / 0.75 & 11.60 / 3.82 & 25.91 / 12.88 & ---
 \textbf{PAWP-300K Shared} (\texttt{EXP-015b}) & 281,078 / 328,158 & 1.12\,MB & 6.88 / 2.93 & \textbf{19.71 / 5.93} & \textbf{12.02 / 5.01} & 6.35$\pm$0.11\% / 6.57$\pm$0.47\% & 77.9\% / 39.0\% \\
 \textbf{Dense-300K} (\texttt{EXP-015c}) & 281,442 / 281,442 & 1.13\,MB & \textbf{6.15 / 2.42} & 20.21 / 6.59 & 18.09 / 9.01 & \textbf{5.53$\pm$0.08\% / 5.34$\pm$0.28\%} & 79.2\% / 37.7\% \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table*}
 
 \begin{figure}[t]
@@ -46,7 +47,7 @@ Human Floor (ASR) & --- & --- & 2.63 / 0.75 & 11.60 / 3.82 & 25.91 / 12.88 & ---
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/shared_vs_dense.pdf}
-  \caption{\textbf{Shared-basis vs.\ dense at equal unique parameters (281K).} Paired-bootstrap difference in test PER at \texttt{seed=42} (shared $-$ dense, 95\% CI; $n=300$ NE + 300 EN); the advantage of dense held across all 3 seeds (42, 101, 202: NE $5.53\pm0.08\%$ vs.\ $6.35\pm0.11\%$, EN $5.34\pm0.28\%$ vs.\ $6.57\pm0.47\%$).}
+  \caption{\textbf{Shared-basis vs.\ dense at equal unique parameters (281K).} Difference in untouched-test PER (shared $-$ dense; $n=300$ NE + 300 EN) for three training seeds (gray) and their mean (orange). Dense is better on every seed in both languages.}
   \label{fig:shared}
 \end{figure}
 

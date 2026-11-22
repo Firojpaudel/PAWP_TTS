@@ -70,3 +70,6 @@ paper/*.toc
 paper/*.fls
 paper/*.fdb_latexmk
 paper/*.synctex.gz
+
+# arXiv upload bundle (build output)
+paper/pawp_tts_arxiv.tar.gz
