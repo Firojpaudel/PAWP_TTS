@@ -441,12 +441,15 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 | **`EXP-015b` `PAWP-300K` Shared** | `281,078 / 328,158` | **`0.87684`** | `6.88% / 2.93%` | **`19.71% / 5.93%`** | **`12.02% / 5.01%`** | `6.28%` (`S=628, D=416`) | `7.09%` (`S=1047, D=393`) | `60/77 (77.9%)` / `30/77 (39.0%)` |
 | **`EXP-015c` `Dense-300K` (0 shared)** | `281,442 / 281,442` | `0.87778` | **`6.15% / 2.42%`** | `20.21% / 6.59%` | `18.09% / 9.01%` | **`5.54%`** (`S=529, D=389`) | **`5.24%`** (`S=724, D=324`) | `61/77 (79.2%)` / `29/77 (37.7%)` |
 
-- **Paired Bootstrap (`Shared - Dense`, `n=300` NE + `n=300` EN untouched `test.jsonl`, 1,000 resamples, `artifacts/reports/exp015bc_300k_shared_vs_dense_test300.json`):**
+- **Paired Bootstrap (`seed=42`, `Shared - Dense`, `n=300` NE + `n=300` EN untouched `test.jsonl`, 1,000 resamples, `artifacts/reports/exp015bc_300k_shared_vs_dense_test300.json`):**
   - **Untouched NE PER:** Dense beat Shared by `-0.97%` absolute (`Shared - Dense = +0.00974`, 95% CI `[+0.00555, +0.01408]`, `p < 0.001`).
   - **Untouched EN PER:** Dense beat Shared by `-1.90%` absolute (`Shared - Dense = +0.01896`, 95% CI `[+0.01439, +0.02346]`, `p < 0.001`).
-- **Honest Verdict (Single-Seed Result; Multi-Seed Running):**
+- **3-Seed Verification (`seeds 42, 101, 202`, identical `v3` recipe, `36k` steps each, `n=300` NE + `n=300` EN untouched `test.jsonl`, `artifacts/reports/exp015bc_multiseed_test300.json`):**
+  - **Shared-300K (`281,078` unique / `328,158` total):** NE PER **`6.35% ± 0.11%`** (`6.28%, 6.29%, 6.48%`), EN PER **`6.57% ± 0.47%`** (`7.09%, 6.44%, 6.17%`).
+  - **Dense-300K (`281,442` unique = total, `0` shared):** NE PER **`5.53% ± 0.08%`** (`5.54%, 5.44%, 5.60%`), EN PER **`5.34% ± 0.28%`** (`5.24%, 5.66%, 5.13%`).
+- **Honest Verdict (3-Seed Confirmed):**
   1. Clean `v3` alignment substantially improved `PAWP-300K` in only `36k` steps (vs. `100k` on `v2` `EXP-011-FT`: EN `8.80%/3.92% -> 6.88%/2.93%`, NE CER `6.93% -> 5.93%`, Mix `16.28%/8.74% -> 12.02%/5.01%`).
-  2. On the small held-out ASR set (`n=30/30/9`), Shared-Basis beat Dense on `best_val_mel`, NE ASR, and Code-Mix ASR (`12.02%/5.01%` vs. `18.09%/9.01%`), **but** on the much larger `300+300` untouched `test.jsonl` PER benchmark (`ctc_aligner_v3.pt`), equal-unique-parameter **Dense (`281,442` params, `14.2%` fewer materialized compute params) significantly beat `K=2` Shared-Basis on both monolingual NE PER (`5.54%` vs. `6.28%`, `p < 0.001`) and EN PER (`5.24%` vs. `7.09%`, `p < 0.001`)**. Because this is currently a **single-seed result (`seed=42`)**, two additional seeds (`101`, `202`) for both Shared and Dense are running in `tmux: pawp-multiseed` (`artifacts/checkpoints/run_exp015_multiseed.sh`) to report `mean ± std` before drawing a final architectural conclusion.
+  2. Across **3 out of 3 independent seeds** with zero overlap, equal-unique-parameter **Dense (`281,442` params, `14.2%` fewer materialized compute params) reproducibly outperformed `K=2` cross-layer Shared-Basis** on untouched `300+300` `test.jsonl` PER (`NE: 5.53% ± 0.08%` vs. `6.35% ± 0.11%`, `-0.82%` abs; `EN: 5.34% ± 0.28%` vs. `6.57% ± 0.47%`, `-1.23%` abs), approaching `PAWP-1.5M v3` (`5.04%` / `4.02%`) at `5.3x` fewer parameters. This cleanly falsifies `K=2` cross-layer basis sharing for monolingual phoneme fidelity at `281K`, while validating the decoder-centric `281K` architecture itself.
 
 ---
 

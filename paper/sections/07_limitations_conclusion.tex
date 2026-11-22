@@ -4,10 +4,9 @@
 \paragraph{Limitations.}
 (1) Held-out ASR evaluations use a small set ($n=30/30/9$) and a single recognizer; formal multi-listener human MOS evaluation remains future work.
 (2) The 105,868-word Nepali lexicon is $\approx$99\% rule/paradigm-generated and has not yet been audited against an independent native-annotated gold set; the proposed orthographic retroflex-nasal $\rightarrow$ dental /n/ mapping is documented as a candidate \texttt{v4} frontend update and is not yet implemented in the released \texttt{v3} weights.
-(3) Equal-budget 281K Shared vs.\ Dense PER comparisons are currently single-seed (\texttt{seed=42}) pending completion of two additional seeds (\texttt{101, 202}).
-(4) Models synthesize a single target speaker identity at inference time without zero-shot voice cloning.
-(5) The target-voice corpus is teacher-generated; perceptual effects of distilling from a synthetic voice are not yet measured.
-(6) Latency is reported as per-chunk compute; end-to-end time-to-first-audio with stateful streaming is not yet measured.
+(3) Models synthesize a single target speaker identity at inference time without zero-shot voice cloning.
+(4) The target-voice corpus is teacher-generated; perceptual effects of distilling from a synthetic voice are not yet measured.
+(5) Latency is reported as per-chunk compute; end-to-end time-to-first-audio with stateful streaming is not yet measured.
 
 \paragraph{Conclusion.}
 This work demonstrated that combining a linguistically grounded English--Nepali frontend with a compact, decoder-centric ConvNeXt1D+iSTFT backbone yields intelligible 24\,kHz bilingual and code-mixed speech at 1.49M parameters (5.98\,MB) and 281K parameters (1.12\,MB). Equally important, the controlled WSP audits establish practical methodological guardrails for weight editing in speech synthesis: verify label consistency, validate target errors directly on human audio, isolate edits to language-specific low-rank residuals, and benchmark against 1-parameter global calibration and matched-budget gradient controls.

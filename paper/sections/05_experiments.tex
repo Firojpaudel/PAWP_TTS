@@ -19,10 +19,10 @@ Table~\ref{tab:params} summarizes the 4-metric parameter footprint and held-out 
 
 \begin{table*}[t]
 \centering
-\caption{End-to-end parameter footprint (all inference tensors counted) and evaluation on clean \texttt{v3} alignment. Held-out ASR uses a single recognizer ($n=30/30/9$); untouched test PER uses \texttt{ctc\_aligner\_v3.pt} ($n=300$ NE + $300$ EN). Note: \texttt{EXP-015b/c} PER is currently a single-seed (\texttt{seed=42}) result; multi-seed (\texttt{seeds 101, 202}) mean $\pm$ std is in progress.}
+\caption{End-to-end parameter footprint (all inference tensors counted) and evaluation on clean \texttt{v3} alignment. Held-out ASR uses a single recognizer ($n=30/30/9$, \texttt{seed=42}); untouched test PER uses \texttt{ctc\_aligner\_v3.pt} ($n=300$ NE + $300$ EN), reporting 3-seed mean $\pm$ std (\texttt{seeds 42, 101, 202}) for \texttt{EXP-015b/c}.}
 \label{tab:params}
 \footnotesize
-\setlength{\tabcolsep}{4.5pt}
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lrrrrrrr@{}}
 \toprule
 Model (\texttt{v3}) & Unique / Total & FP32 & EN ASR & NE ASR & Mix ASR & Test NE / EN & CTC 77-Pair \\
@@ -30,8 +30,8 @@ Model (\texttt{v3}) & Unique / Total & FP32 & EN ASR & NE ASR & Mix ASR & Test N
 \midrule
 Human Floor (ASR) & --- & --- & 2.63 / 0.75 & 11.60 / 3.82 & 25.91 / 12.88 & --- & --- \\
 \textbf{PAWP-1.5M v3} (\texttt{EXP-015a}) & 1,490,390 / 1,490,390 & 5.98\,MB & \textbf{4.02 / 1.50} & \textbf{12.35 / 1.75} & 12.32 / 5.32 & \textbf{5.04\% / 4.02\%} & \textbf{83.1\% / 58.4\%} \\
-\textbf{PAWP-300K Shared} (\texttt{EXP-015b}) & 281,078 / 328,158 & 1.12\,MB & 6.88 / 2.93 & \textbf{19.71 / 5.93} & \textbf{12.02 / 5.01} & 6.28\% / 7.09\% & 77.9\% / 39.0\% \\
-\textbf{Dense-300K} (\texttt{EXP-015c}) & 281,442 / 281,442 & 1.13\,MB & \textbf{6.15 / 2.42} & 20.21 / 6.59 & 18.09 / 9.01 & \textbf{5.54\% / 5.24\%} & 79.2\% / 37.7\% \\
+\textbf{PAWP-300K Shared} (\texttt{EXP-015b}) & 281,078 / 328,158 & 1.12\,MB & 6.88 / 2.93 & \textbf{19.71 / 5.93} & \textbf{12.02 / 5.01} & 6.35$\pm$0.11\% / 6.57$\pm$0.47\% & 77.9\% / 39.0\% \\
+\textbf{Dense-300K} (\texttt{EXP-015c}) & 281,442 / 281,442 & 1.13\,MB & \textbf{6.15 / 2.42} & 20.21 / 6.59 & 18.09 / 9.01 & \textbf{5.53$\pm$0.08\% / 5.34$\pm$0.28\%} & 79.2\% / 37.7\% \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -46,12 +46,12 @@ Human Floor (ASR) & --- & --- & 2.63 / 0.75 & 11.60 / 3.82 & 25.91 / 12.88 & ---
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{figures/shared_vs_dense.pdf}
-  \caption{\textbf{Shared-basis vs.\ dense at equal unique parameters (281K).} Paired-bootstrap difference in test PER (shared $-$ dense, 95\% CI; $n=300$ NE + 300 EN). Single training seed; multi-seed results pending.}
+  \caption{\textbf{Shared-basis vs.\ dense at equal unique parameters (281K).} Paired-bootstrap difference in test PER at \texttt{seed=42} (shared $-$ dense, 95\% CI; $n=300$ NE + 300 EN); the advantage of dense held across all 3 seeds (42, 101, 202: NE $5.53\pm0.08\%$ vs.\ $6.35\pm0.11\%$, EN $5.34\pm0.28\%$ vs.\ $6.57\pm0.47\%$).}
   \label{fig:shared}
 \end{figure}
 
-\paragraph{Single-Seed Shared vs.\ Dense Trade-Off.}
-At \texttt{seed=42}, \texttt{PAWP-300K Shared} achieved lower \texttt{val\_mel} (0.8768 vs.\ 0.8778), stronger \texttt{val\_energy} (1.50 vs.\ 1.60), and lower Code-Mix ASR WER (12.02\% vs.\ 18.09\%, $n=9$). However, on the larger untouched $300+300$ \texttt{test.jsonl} PER benchmark (1,000-resample paired bootstrap), equal-unique-parameter \texttt{Dense-300K} outperformed \texttt{Shared} on both Nepali PER (dense lower by 0.97\,pp; shared $-$ dense $=+0.97$\,pp, 95\% CI $[+0.56, +1.41]$, $p<0.001$) and English PER (dense lower by 1.90\,pp; 95\% CI $[+1.44, +2.35]$, $p<0.001$), approaching \texttt{PAWP-1.5M v3} at 5.3$\times$ fewer parameters (Figure~\ref{fig:shared}). Multi-seed verification (\texttt{seeds 101, 202}) is running to report mean $\pm$ std before finalizing this architectural comparison.
+\paragraph{Multi-Seed Shared vs.\ Dense Trade-Off.}
+At \texttt{seed=42}, \texttt{PAWP-300K Shared} achieved lower \texttt{val\_mel} (0.8768 vs.\ 0.8778), stronger \texttt{val\_energy} (1.50 vs.\ 1.60), and lower Code-Mix ASR WER (12.02\% vs.\ 18.09\%, $n=9$). However, on the larger untouched $300+300$ \texttt{test.jsonl} PER benchmark, equal-unique-parameter \texttt{Dense-300K} outperformed \texttt{Shared} on \textbf{3 out of 3 independent seeds} (42, 101, 202) with zero overlap: Nepali PER averaged \textbf{5.53$\pm$0.08\%} vs.\ 6.35$\pm$0.11\% ($-0.82$\,pp; \texttt{seed=42} paired bootstrap 95\% CI $[+0.56, +1.41]$, $p<0.001$) and English PER averaged \textbf{5.34$\pm$0.28\%} vs.\ 6.57$\pm$0.47\% ($-1.23$\,pp; \texttt{seed=42} 95\% CI $[+1.44, +2.35]$, $p<0.001$), approaching \texttt{PAWP-1.5M v3} at 5.3$\times$ fewer parameters (Figure~\ref{fig:shared}). This falsifies $K=2$ cross-layer basis sharing for monolingual phoneme fidelity at 281K while validating the decoder-centric 281K architecture itself.
 
 \paragraph{Latency and Zero-Shot Compression.}
 On a 4-thread x86\_64 CPU, folded \texttt{PAWP-1.5M} ONNX decodes a 60\,ms audio chunk in 1.11\,ms p50 (1.52\,ms p99), about 0.0058 real-time factor, and the frontend takes 0.16\,ms p50 per sentence. These are per-chunk compute times measured after the utterance is encoded; full end-to-end time-to-first-audio with stateful streaming is future work. In contrast, post-hoc one-shot SVD (\texttt{EXP-010}) collapses by 500K parameters without recovery training, demonstrating that end-to-end compact training is essential below 1M parameters.
