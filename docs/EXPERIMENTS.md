@@ -454,6 +454,24 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 
 ---
 
+## EXP-017: ROME Null-Space Rank-1 WSP on Nepali Retroflex Nasal (`ɳ vs n̪`) Inside `{u_ne, v_ne}`
+
+- **Date:** 2026-11-22 · **Status:** Completed & Logged (Zero-Collateral Confirmed; Gradient FT Beat Zero-Training Rank-1 on Target Margin)
+- **Motivation:** After `EXP-014` + `EXP-015a` eliminated the `v2` `व -> /w/` artifact, the top remaining Nepali substitution on clean `val.jsonl` (`ctc_aligner_v3.pt`) was `ɳ -> n̪` (`7 / 10,488`). Layer localization found `probe_acc = 1.000` and highest causal activation-patching flip (`+1.1808`) at `encoder_blocks.0`.
+- **Method:** Applied ROME null-space-projected Rank-1 WSP strictly inside the Nepali-only low-rank residual `encoder_blocks.0.pw2.{u_ne, v_ne}` (`6,144` params = `0.41%` of `PAWP-1.5M`), sweeping `alpha in {0.01, 0.02, 0.04, 0.08, 0.15}` on `val.jsonl` (`best_alpha = 0.01`, `||Delta W||_F = 0.259`). Verified one-shot on untouched `test.jsonl` (`300` NE + `300` EN, `56` `ɳ` occurrences across `46` utterances, `ctc_aligner_v3.pt`, 1,000-resample paired bootstrap 95% CIs) against same-location matched-norm random Rank-1 and same-parameter 60-step gradient FT (`u_ne, v_ne` only).
+- **One-Shot Verification on Untouched `test.jsonl` (`300` NE + `300` EN):**
+
+| Checkpoint (`6,144` params = `0.41%`) | NE PER (`n=300`) | EN PER (`n=300`) | `ɳ -> n̪` Conf Rate (`n=56`) | Target Margin (`m_c - m_t`, lower better) | Margin `delta` 95% CI (`p_improved`) |
+|---|---:|---:|---:|---:|---|
+| Baseline (`EXP-015a` v3) | `5.036%` | `4.021%` | `41.07%` | `-0.9793` | — |
+| **WSP ROME Rank-1 (`alpha=0.01`)** | `5.026%` | `4.021%` (`+0.000%`) | `41.07%` | `-0.9881` (`-0.0087`) | `[-0.0279, +0.0056]` (`p=0.148`) |
+| Control 1: Matched Random Rank-1 | `5.031%` | `4.021%` (`+0.000%`) | `41.07%` | `-0.9770` (`+0.0023`) | `[+0.0005, +0.0042]` (`p=0.992`) |
+| Control 2: Same-Param FT (60 steps) | `5.036%` | `4.021%` (`+0.000%`) | `41.07%` | **`-1.0201` (`-0.0407`)** | **`[-0.0631, -0.0231]` (`p<0.001`)** |
+
+- **Honest Verdict:** Placing the edit inside `{u_ne, v_ne}` with ROME null-space projection achieved exact zero English collateral (`0.000%` by construction) and zero Nepali collateral (`NE PER 5.036% -> 5.026%`, `p=0.495`), resolving the collateral regression of `EXP-013a`. On the target `ɳ vs n̪` contrast, zero-training ROME Rank-1 nudged the margin in the right direction (`-0.0087`, `p=0.148`) and outperformed the random control (`+0.0023`, `p=0.992`), **but** did not reach significance and was beaten by same-parameter 60-step gradient FT (`-0.0407`, `p<0.001`), while discrete top-1 confusion remained `41.07%` for all methods. This is a clean negative/partial result for zero-training single-layer Rank-1 editing on fine-grained acoustic contrasts.
+
+---
+
 ## AUDIT-002: Independent Review of EXP-007 – EXP-012 (Corrections)
 
 - **Date:** 2026-11-21 · **Reviewers:** independent audit agents. Findings were confirmed point by point by the experimenting agent (Gemini 4 Neon).

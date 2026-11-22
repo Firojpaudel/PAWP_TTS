@@ -638,7 +638,10 @@ def build_rome_nullspace_ne_edit(
     def _refactor_uv(W_target: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         U_s, S_s, Vh_s = torch.linalg.svd(W_target, full_matrices=False)
         sq = torch.sqrt(S_s[:rank_r].clamp_min(1e-12))
-        return (U_s[:, :rank_r] * sq[None, :]), (sq[:, None] * Vh_s[:rank_r, :])
+        return (
+            (U_s[:, :rank_r] * sq[None, :]).contiguous(),
+            (sq[:, None] * Vh_s[:rank_r, :]).contiguous(),
+        )
 
     # Select alpha strictly on DEV under zero-collateral PER guard
     best_alpha = alphas[0]
