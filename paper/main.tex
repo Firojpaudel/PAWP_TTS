@@ -1,20 +1,32 @@
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
-\usepackage[margin=0.8in]{geometry}
-\usepackage{times}
+\usepackage[top=0.8in,bottom=0.85in,left=0.72in,right=0.72in,columnsep=0.28in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[sc]{mathpazo}
+\linespread{1.05}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{microtype}
 \usepackage{url}
-\usepackage[hidelinks]{hyperref}
+\usepackage[font=small,labelfont=bf,skip=6pt]{caption}
+\usepackage{titlesec}
+\usepackage[colorlinks=true,linkcolor=blue!55!black,citecolor=blue!55!black,urlcolor=blue!55!black]{hyperref}
 
-\title{\textbf{PAWP-TTS: Compact Bilingual English--Nepali Speech Synthesis and Diagnostic Weight-Space Programming at 1.5M and 281K Parameters}}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{10pt plus 2pt minus 2pt}{4pt plus 1pt}
+\titlespacing*{\subsection}{0pt}{8pt plus 2pt minus 1pt}{3pt plus 1pt}
+\setlength{\parskip}{2pt plus 1pt}
+
+\title{\vspace{-1.2em}\Large\textbf{PAWP-TTS: Compact Bilingual English--Nepali Speech Synthesis and Diagnostic Weight-Space Programming at 1.5M and 281K Parameters}}
 
 \author{
-  Firoj Paudel \\
-  \texttt{https://github.com/Firojpaudel/PAWP\_TTS}
+  \textbf{Firoj Paudel} \\
+  \texttt{firoj.paudel@wiseyak.com} \\[2pt]
+  \small Code: \url{https://github.com/Firojpaudel/PAWP_TTS} \quad|\quad
+  Audio Demo: \url{https://huggingface.co/spaces/Firoj112/pawp-tts-demo}
 }
 
 \date{}

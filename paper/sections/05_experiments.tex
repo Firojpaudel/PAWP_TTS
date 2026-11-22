@@ -11,7 +11,8 @@ Table~\ref{tab:params} summarizes the 4-metric parameter footprint and held-out 
 \centering
 \caption{End-to-end parameter footprint (all inference tensors counted) and evaluation on clean \texttt{v3} alignment. Held-out ASR uses a single recognizer ($n=30/30/9$); untouched test PER uses \texttt{ctc\_aligner\_v3.pt} ($n=300$ NE + $300$ EN). Note: \texttt{EXP-015b/c} PER is currently a single-seed (\texttt{seed=42}) result; multi-seed (\texttt{seeds 101, 202}) mean $\pm$ std is in progress.}
 \label{tab:params}
-\small
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{@{}lrrrrrrr@{}}
 \toprule
 Model (\texttt{v3}) & Unique / Total & FP32 & EN ASR & NE ASR & Mix ASR & Test NE / EN & CTC 77-Pair \\
