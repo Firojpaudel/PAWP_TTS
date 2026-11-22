@@ -78,11 +78,33 @@ def _load_pawp_runner(model_id: str, revision: str | None, threads: int):
 
 
 def _frontend_arrays(phonemize, text: str):
+    from pawp_tts.domain.entities.models import LanguageCode
+
     seq = phonemize.execute(text.strip())
-    p_ids = np.array([[t.token_id for t in seq.tokens]], dtype=np.int64)
-    l_ids = np.array([[t.lang_id for t in seq.tokens]], dtype=np.int64)
-    s_ids = np.array([[t.stress for t in seq.tokens]], dtype=np.int64)
-    b_flags = np.array([[t.boundary_flag for t in seq.tokens]], dtype=np.float32)
+    tokens = seq.tokens
+    lang_map = {
+        LanguageCode.SHARED: 0,
+        LanguageCode.EN: 1,
+        LanguageCode.NE: 2,
+        LanguageCode.MIXED: 3,
+    }
+    p_ids = np.array([[tok.token_id for tok in tokens]], dtype=np.int64)
+    l_ids = np.array([[lang_map.get(tok.language, 0) for tok in tokens]], dtype=np.int64)
+    s_ids = np.array([[min(tok.stress, 3) for tok in tokens]], dtype=np.int64)
+    b_flags = np.array(
+        [
+            [
+                [
+                    1.0 if tok.is_word_start else 0.0,
+                    1.0 if tok.is_word_end else 0.0,
+                    1.0 if tok.is_syllable_start else 0.0,
+                    1.0 if tok.is_phrase_break else 0.0,
+                ]
+                for tok in tokens
+            ]
+        ],
+        dtype=np.float32,
+    )
     return p_ids, l_ids, s_ids, b_flags
 
 
