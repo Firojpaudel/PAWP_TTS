@@ -1,0 +1,11 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Non-Autoregressive TTS and Fourier Vocoding.}
+Our acoustic backbone builds on non-autoregressive variance-adapted synthesis~\cite{ren2021fastspeech2} paired with Fourier-domain ConvNeXt1D + iSTFT waveform synthesis~\cite{siuzdak2024vocos}. Unlike conventional pipelines that exclude a multi-million-parameter vocoder from reported parameter counts, we count every learned tensor required for inference from phoneme IDs to 24\,kHz PCM waveforms. Articulatory feature conditioning follows prior low-resource multilingual TTS work~\cite{lux2022toucan}.
+
+\paragraph{Model Compression and Parameter Sharing.}
+Prior compression methods include Fisher-weighted SVD~\cite{hsu2022fwsvd}, adaptive low-rank allocation~\cite{zhang2023adalora}, and dynamic sparse training~\cite{evci2020rigl}. We explicitly distinguish \emph{unique stored parameters} from \emph{materialized compute parameters} when evaluating cross-layer shared bases against equal-unique-parameter dense baselines.
+
+\paragraph{Mechanistic Localization and Weight Editing.}
+Rank-one model editing with covariance whitening (ROME)~\cite{meng2022rome} demonstrated targeted, gradient-free edits in language models. We adapt the inspect--localize--edit--verify workflow to compact bilingual speech synthesis, imposing strict evaluation controls: validation-only hyperparameter selection, one-shot evaluation on untouched test data, paired-bootstrap confidence intervals, matched-norm random edits, and same-parameter gradient fine-tuning controls.

@@ -38,7 +38,7 @@ Variant choices follow standard Kathmandu Nepali.
 | Spirantisation of aspirated stops (/pʰ/ → [ɸ]) | सफा [sʌɸa] | Optional, gradient [2] |
 | Medial schwa syncope beyond the current heuristic | — | Not covered by the sources accessed |
 | Realisation of ज्ञ, क्ष, त्र, श्र, ऋ | — | Current choices unverified; check against native recordings |
-| **Proposed:** Orthographic ण → /n̪/ (except pre-retroflex allophonic [ɳ] before ट ठ ड ढ) | नारायण, पूर्ण, कारण | Standard spoken Kathmandu Nepali has only three contrastive nasals (`/m, n̪, ŋ/`) [1]; `ctc_aligner_v3.pt` on native human `test.jsonl` audio (`n=62` occurrences across `52` utterances) measured `56/62 (90.3%)` `ɳ → n̪` realization (`m_c - m_t = +3.246`), confirming `ण → /n̪/` is a frontend phonology choice rather than a neural TTS defect. |
+| **Proposed (not yet implemented):** Orthographic ण → /n̪/ (keeping allophonic [ɳ] before ट ठ ड ढ) | नारायण, पूर्ण, कारण | Standard spoken Kathmandu Nepali has only three contrastive nasals (`/m, n̪, ŋ/`) [1]; `ctc_aligner_v3.pt` on native human `test.jsonl` audio (`n=62` occurrences across `52` utterances) measured `56/62 (90.3%)` `ɳ → n̪` realization (`m_c - m_t = +3.246`). **Not yet implemented:** `nepali_rules.py` and ~1,800 `ne_lexicon_v1` entries still emit `ɳ`; adopting it requires updating `nepali_rules.py`, regenerating affected lexicon entries, adding unit tests, and rebuilding cache `v4` + `ctc_aligner_v4` + durations before any further training or WSP. |
 
 ## Evaluation & Validation Suites
 

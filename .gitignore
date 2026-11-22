@@ -55,5 +55,18 @@ artifacts/blog_samples/
 # Experiment tracking local run files
 wandb/
 
-# Internal agent handover (contains internal details)
+# Internal agent handover & local Gradio session files
 HANDOVER.md
+artifacts/reports/gradio.log
+artifacts/reports/human_listening_notes.jsonl
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz

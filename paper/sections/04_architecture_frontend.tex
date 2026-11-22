@@ -1,0 +1,23 @@
+\section{Frontend and Compact Architecture}
+\label{sec:arch}
+
+\subsection{Deterministic Bilingual Frontend}
+Rather than spending neural capacity memorizing orthographic exceptions, we build a deterministic frontend mapping mixed Devanagari and Latin text to a unified 128-token IPA inventory with explicit language IDs, lexical stress, and word-boundary (\texttt{<sp>}) markers:
+\begin{itemize}
+  \item \textbf{Nepali Phonology:} Implements standard Kathmandu Nepali rules~\cite{khatiwada2009nepali} covering the Nepali inherent vowel, alveolar affricates, sibilant merger to \texttt{/s/} (0.0\% Hindi postalveolar \texttt{/sh/} symbol bleed), post-vocalic retroflex flapping, gemination, and a 105,868-word Nepali lexicon ($\approx$99\% rule/paradigm-generated, 100\% symbol-compliant, 0\% \texttt{<unk>}) plus 76 context-dependent heteronyms (152 readings).
+  \item \textbf{English G2P:} In-process \texttt{libespeak-ng} via \texttt{ctypes} ($<$0.20\,ms/sentence), seamlessly interleaved with Nepali tokens for Devanagari--Latin code-mixing.
+\end{itemize}
+
+\subsection{Language-Gated Superposition and Folding}
+Each pointwise projection in the encoder and acoustic blocks is parameterized as:
+\begin{equation}
+  y_t = W_{\text{shared}} x_t + m_{\text{en}}(t)\,\Delta W_{\text{en}} x_t + m_{\text{ne}}(t)\,\Delta W_{\text{ne}} x_t,
+\end{equation}
+where $\Delta W_{\ell} = g_\ell U_\ell V_\ell$ are compact low-rank language residuals and $m_\ell(t) \in [0,1]$ are deterministic frontend language masks. During code-mixed synthesis, token- and frame-level masks route smoothly across script boundaries; for monolingual deployment, $\Delta W_\ell$ folds statically into $W_{\text{shared}}$ at export time for zero runtime overhead.
+
+\subsection{Decoder-Centric 1.5M and 281K Tiers}
+We evaluate two primary parameter tiers (Table~\ref{tab:params}):
+\begin{itemize}
+  \item \textbf{PAWP-1.5M:} 4 encoder ConvNeXt1D blocks ($d=128, k=5$, lookahead 1), variance predictors (duration, $F_0$, voicing, energy), 4 acoustic blocks ($d=128, k=7$), and a 3-layer iSTFT decoder ($d=192$, 513 STFT bins, 24\,kHz, $\text{hop}=240$). Total learned parameters: \textbf{1,490,390} (5.98\,MB FP32).
+  \item \textbf{PAWP-300K (Shared vs.\ Dense):} Decoder-centric allocation (52.6\% of parameters in the 24\,kHz iSTFT decoder, $n_{\text{fft}}=512$, 28-dim articulatory conditioning). The shared-basis variant (\texttt{EXP-015b}) pools $K=2$ bases across depth (\textbf{281,078} unique / 328,158 materialized params, 20.96\,MMAC/s); the equal-budget dense baseline (\texttt{EXP-015c}) removes basis sharing (\textbf{281,442} unique = materialized params).
+\end{itemize}
