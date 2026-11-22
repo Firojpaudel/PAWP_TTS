@@ -354,12 +354,28 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 
 ---
 
-## EXP-011: `PAWP-300K` Ultra-Compact Bilingual Shared-Basis Training (`281K` Unique Params)
+## EXP-011: `PAWP-300K` Ultra-Compact Bilingual Shared-Basis Training (`281K` Unique / `328K` Total Params)
 
-- **Date:** 2026-11-21 · **Status:** training (overnight 100k-step pipeline: 80k base + 20k target-voice FT)
-- **Hypothesis:** Because `EXP-010` demonstrated that one-shot post-training SVD collapses at `<= 500K`, training a purpose-built decoder-centric (`52.6%`) cross-depth `K=2` shared-basis architecture (`configs/student_300k_pawp.yaml`: `281,078` unique stored params, `328,158` materialized total, `20.96 MMAC/s`, `0.28 MB` INT8, `n_fft=512`, `24 kHz`) end-to-end with CTC forced-alignment durations and MPD/MRD GAN discriminators will yield an intelligible bilingual EN/NE/code-mixed voice under 300K unique parameters.
-- **Method:** 80,000 base steps (`train_ft + 15k replay`, `lr: 1e-3`, GAN from step 15k, `--prosody-free-prob 0.5`) followed automatically by 20,000 target-voice fine-tune steps (`train_ft + 4k replay`, `lr: 3e-4`, GAN from step 0), live held-out ASR (`n=30/30/9`), internal 77-pair contrast check, and folded EN/NE ONNX export.
-- **Interim Signal:** At step 18k, `val_mel` reached `0.8867` (vs. `0.8009` for `PAWP-1.5M`). Final ASR/ONNX results will be added upon completion.
+- **Date:** 2026-11-21–22 · **Status:** Completed & Evaluated (Base 80k + Target-Voice FT 20k)
+- **Architecture (`configs/student_300k_pawp.yaml`):**
+  - `unique_stored_params`: `281,078` | materialized `total_params`: `328,158` | `effective_compute_params`: `309,702` (`20.96 MMAC/s`).
+  - Decoder-centric (`52.6%`, `172,642` params), `n_fft=512`, `24 kHz`, cross-depth `K=2` shared bases + `28`-dim articulatory conditioning (`FP32 = 1.12 MB | INT8 = 0.28 MB`).
+- **Training Recipe:**
+  - **Stage 1 (`EXP-011` Base):** `80,000` steps (`train_ft + 15k replay`, `lr: 1e-3`, GAN from step `15,000`, `--prosody-free-prob 0.5`).
+  - **Stage 2 (`EXP-011-FT` Target-Voice FT):** `20,000` steps initialized from `exp011_300k/train_state.pt` (`train_ft + 4k replay`, `lr: 3e-4`, GAN from step `0`).
+- **Held-Out ASR Intelligibility Proxy (`n=30` EN, `30` NE, `9` code-mixed; one recognizer; internal 77-pair G2P/mel smoke test `77/77`, not the published NepTTS-Bench):**
+
+| Checkpoint | `unique_stored` / `total` | EN WER / CER (`n=30`) | NE WER / CER (`n=30`) | Code-Mix WER / CER (`n=9`) | Notes |
+|---|---:|---:|---:|---:|---|
+| Human Reference Audio (same ASR) | — | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | Intelligibility proxy floor |
+| `EXP-011` Base (Step 80k) | `281,078 / 328,158` | `8.40% / 5.32%` | `20.49% / 7.49%` | `16.95% / 7.74%` | `100%` non-silent, `0%` `<unk>` |
+| `EXP-011-FT` Target Voice (+20k) | `281,078 / 328,158` | `8.80% / 3.92%` | `19.42% / 6.93%` | `16.28% / 8.74%` | EN CER & NE improved; Mix CER (`7.74% -> 8.74%`) and EN WER (`8.40% -> 8.80%`) regressed slightly |
+
+- **Interpretation & Caveats:**
+  1. This compares a **trained 281K model vs. zero-shot 1M compression (`EXP-010b`)** — it is NOT an apples-to-apples architecture test for shared bases (an equal-budget dense `~281K` baseline trained on the same recipe is required and planned on `data/cache/v3`).
+  2. **Pre-lexicon cache caveat:** `EXP-011` / `EXP-011-FT` trained on `data/cache/v2` (predating the lexicon and `व -> /b/` rule), so the `व` label-version mismatch applies.
+  3. **Small eval / single recognizer:** `n=30/30/9`, one ASR, no human listening MOS yet.
+- **Artifacts:** `artifacts/checkpoints/exp011_300k_ft/best.safetensors` (`1.1 MB`), folded EN/NE ONNX graphs (`1.32 MB` total FP32 each in `artifacts/checkpoints/exp011_300k_ft/onnx/`), and 24 kHz samples in `artifacts/checkpoints/exp011_300k_ft/samples/`.
 
 ---
 

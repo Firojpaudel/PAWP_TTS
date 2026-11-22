@@ -6,7 +6,7 @@
 |---|---:|---:|---:|---|---:|---|
 | `PAWP-1.5M` (uncompressed baseline) | `1,490,390` | `1,490,390` | `1,293,750` | `5.96 MB / 2.98 MB / 1.49 MB` | `1,500,000` | Initial bilingual 24 kHz ConvNeXt1D+iSTFT architecture (`~106.1 MMAC/s`) |
 | `PAWP-1M` (`configs/student_1m_pawp.yaml`) | `1,223,734` | **`928,854`** | `1,125,398` | `3.72 MB / 1.86 MB / 0.93 MB` | `1,000,000` | Cross-depth `K=2` shared basis pools (`r_layer=16`, `r_lang=8`) + `28`-dim articulatory conditioning (`~63.3 MMAC/s`) |
-| `PAWP-300K` (`configs/student_300k_pawp.yaml`) | `328,158` | **`281,078`** | `309,702` | `1.12 MB / 0.56 MB / 0.28 MB` | `300,000` | Decoder-centric (`52.6%`), `n_fft=512`, `K=2` shared bases + `28`-dim articulatory conditioning (`20.96 MMAC/s`, `EXP-011` training) |
+| `PAWP-300K` (`configs/student_300k_pawp.yaml`) | `328,158` | **`281,078`** | `309,702` | `1.12 MB / 0.56 MB / 0.28 MB` | `300,000` | Decoder-centric (`52.6%`), `n_fft=512`, `K=2` shared bases + `28`-dim articulatory conditioning (`20.96 MMAC/s`, `EXP-011` completed) |
 | `OmniVoice` Teacher (LM + Audio Tokenizer) | `1,015,378,394` | `1,015,378,394` | `1,015,378,394` | `~2.84 GB` (BF16+F32) | — | Zero-shot 24 kHz teacher baseline (`813.98M` LM + `201.40M` tokenizer) |
 | `PiVo-1.4M` (external reference) | `1,401,562` | `1,401,562` | `1,401,562` | `5.6 MB` FP32 | — | English-only, 16 kHz FARGAN vocoder |
 
@@ -24,7 +24,9 @@
 | **`PAWP-1.5M` Polished Default (`EXP-012`, +10k)** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | Pure-target phase/timbre polish; default HF release |
 | **`PAWP-1.5M` + WSP `E3` (Zero-Training Edit, `EXP-009`)** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | Surgical `acoustic u_en/v_en` (`3.3%` edited; `pawp-tts-1.5m-wsp`) |
 | **`PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, `EXP-009`)** | **`4.73% / 2.02%`** | **`10.09% / 1.93%`** | **`11.65% / 4.90%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | Nepali-orthogonal null-space (`4.7%` edited) |
-| **`PAWP-1.0M` Decoder-Centric (Zero-Shot, `EXP-010b`)** | **`9.56% / 6.91%`** | **`22.76% / 9.73%`** | **`19.09% / 9.66%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | `998.8K` params; beats Uniform SVD (`14.26% / 23.06% / 20.84%`) |
+| **`PAWP-1.0M` Decoder-Centric (Zero-Shot, `EXP-010b`)** | **`9.56% / 6.91%`** | **`22.76% / 9.73%`** | **`19.09% / 9.66%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | `998.8K` params; zero-shot post-hoc compression (no retraining) |
+| **`PAWP-300K` Base (`EXP-011`, Step 80k)** | `8.40% / 5.32%` | `20.49% / 7.49%` | `16.95% / 7.74%` | `100.0%` (`0%` `/ʃ/` symbol bleed) | `281,078` unique / `328,158` total; trained end-to-end on v2 cache (pre-lexicon) |
+| **`PAWP-300K` Target Voice (`EXP-011-FT`, +20k)** | `8.80% / 3.92%` | `19.42% / 6.93%` | `16.28% / 8.74%` | `100.0%` (`0%` `/ʃ/` symbol bleed) | `281,078` unique / `328,158` total; Mix CER (`7.74->8.74%`) & EN WER (`8.40->8.80%`) regressed slightly; pre-lexicon v2 cache |
 
 ### Phonological Smoke Checks (Internal G2P + Non-Silent Audio)
 
