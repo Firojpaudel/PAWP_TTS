@@ -5,18 +5,26 @@
 **Phoneme-Aware Weight Programming for Ultra-Compact Bilingual (English–Nepali) Neural Speech Synthesis**
 
 <p>
-  <a href="https://huggingface.co/spaces/Firoj112/pawp-tts-demo"><img src="https://img.shields.io/badge/Live_Audio_Demo-Hugging_Face_Space-2563EB?style=for-the-badge&logo=huggingface&logoColor=white" alt="Live Audio Demo"></a>
-  <a href="https://huggingface.co/Firoj112/pawp-tts-1.5m"><img src="https://img.shields.io/badge/Model-PAWP--1.5M_(Polished)-0F172A?style=for-the-badge&logo=huggingface&logoColor=FFD21E" alt="PAWP-1.5M Model"></a>
-  <a href="https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp"><img src="https://img.shields.io/badge/Model-PAWP--1.5M--WSP-0F172A?style=for-the-badge&logo=huggingface&logoColor=FFD21E" alt="PAWP-1.5M-WSP Model"></a>
+  <a href="https://firojpaudel.com.np/blog/bilingual-tts-in-1-5m-parameters/"><img src="https://img.shields.io/badge/Try_In_Browser-Live_Blog_Demo-7C3AED?style=for-the-badge" alt="Live In-Browser Demo"></a>
+  <a href="https://huggingface.co/spaces/Firoj112/pawp-tts-demo"><img src="https://img.shields.io/badge/Audio_Showcase-HF_Space-2563EB?style=for-the-badge&logo=huggingface&logoColor=white" alt="Live Audio Demo"></a>
+  <a href="https://github.com/Firojpaudel/PAWP_TTS/blob/main/paper/main.pdf"><img src="https://img.shields.io/badge/Paper_PDF-arXiv_Coming_Soon-B91C1C?style=for-the-badge" alt="Paper PDF"></a>
+  <a href="https://huggingface.co/Firoj112/pawp-tts-1.5m"><img src="https://img.shields.io/badge/Model-PAWP--1.5M_(v3)-0F172A?style=for-the-badge&logo=huggingface&logoColor=FFD21E" alt="PAWP-1.5M Model"></a>
+  <a href="https://huggingface.co/Firoj112/pawp-tts-300k"><img src="https://img.shields.io/badge/Model-PAWP--300K_(1.12_MB)-0F172A?style=for-the-badge&logo=huggingface&logoColor=FFD21E" alt="PAWP-300K Model"></a>
 </p>
 
 <p>
-  <img src="https://img.shields.io/badge/Params-1.49M_(5.98_MB)-1E293B?style=flat-square" alt="Parameters">
-  <img src="https://img.shields.io/badge/Nepali_WER-9.93%25_(held--out_ASR,_n%3D30)-16A34A?style=flat-square" alt="Nepali WER">
-  <img src="https://img.shields.io/badge/Code--Mix_WER-9.93%25_(preliminary)-F59E0B?style=flat-square" alt="Code-Mix WER">
-  <img src="https://img.shields.io/badge/ONNX_CPU_TTFA-1.11_ms-0284C7?style=flat-square" alt="ONNX TTFA">
+  <img src="https://img.shields.io/badge/Params-1.49M_(5.98_MB)_%7C_281K_(1.12_MB)-1E293B?style=flat-square" alt="Parameters">
+  <img src="https://img.shields.io/badge/EN_%2F_NE_CER-1.50%25_%2F_1.75%25_(v3)-16A34A?style=flat-square" alt="CER">
+  <img src="https://img.shields.io/badge/Browser_TTS-11_ms_first_sound_%7C_23x_RT-7C3AED?style=flat-square" alt="Browser TTS">
+  <img src="https://img.shields.io/badge/ONNX_CPU_Chunk-1.11_ms-0284C7?style=flat-square" alt="ONNX Latency">
   <img src="https://img.shields.io/badge/Sample_Rate-24_kHz-475569?style=flat-square" alt="Sample Rate">
-  <img src="https://img.shields.io/badge/License-Apache_2.0-334155?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/License-Apache_2.0_%2F_CC_BY_4.0-334155?style=flat-square" alt="License">
+</p>
+
+<p>
+  <a href="https://firojpaudel.com.np/blog/bilingual-tts-in-1-5m-parameters/">
+    <img src="docs/figures/pawp_tts_hero.gif" alt="PAWP-TTS: a whole voice in 5.98 MB or 1.12 MB" width="760">
+  </a>
 </p>
 
 </div>
