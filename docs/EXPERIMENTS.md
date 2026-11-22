@@ -426,13 +426,27 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 
 ---
 
-## EXP-014 & EXP-015a: Clean `data/cache/v3` Rebuild, `ctc_aligner_v3.pt`, and `PAWP-1.5M` v3 Fine-Tune
+## EXP-014 & EXP-015a/b/c: Clean `data/cache/v3` Rebuild, `PAWP-1.5M v3`, and Equal-Budget `300K` Shared-Basis vs. Dense Ablation
 
-- **Date:** 2026-11-22 · **Status:** Completed & Logged (`EXP-015b/c` running)
+- **Date:** 2026-11-22 · **Status:** Completed & Logged
 - **Step 2 (`EXP-014`):** Rebuilt `data/cache/v3` (`136,807` utterances, `0` errors) using the current frontend + 105k lexicon, retrained `artifacts/checkpoints/ctc_aligner_v3.pt` (`6,000` steps, final `ctc = 0.6141` vs. `~1.0` on `v2`), and extracted forced-alignment durations (`dur_one_frac`: `train 0.0594`, `train_extra 0.0393`, `train_ft 0.0296`, `val 0.0556`; median `50–60 ms`). Sanity check on 300 NE test sentences with `ctc_aligner_v3.pt`: `व`-word `/b/ -> /w/` confusion dropped from `65/118 (55.1%)` to **`0/118 (0.0%)`** (`ब`-words: `3/240 = 1.2%`).
 - **Step 3a (`EXP-015a`):** Fine-tuned `PAWP-1.5M` from `exp012_polish/train_state.pt` on `data/cache/v3` (`10k` steps, `train_ft + 10k replay`, `lr: 3e-4`).
   - Held-out ASR (`n=30/30/9`, one recognizer): **EN `4.02% / 1.50%`**, **NE `12.35% / 1.75%`** (new lowest NE CER), **Code-Mix `12.32% / 5.32%`**; internal 77-pair smoke test `77/77`.
   - Clean `make pawp-inspect` (`ctc_aligner_v3.pt`, `val.jsonl`, `150` NE + `150` EN, `10,488` NE phonemes): **DEV NE PER dropped `7.06% -> 3.96%`** (`S=170, D=203, I=42`), **DEV EN PER `5.29% -> 4.33%`**. `b -> w` vanished from top 12; largest single substitution was `ɳ -> n̪` (`7 / 10,488 = 0.07%`), while deletions (`D = 203`) dominated.
+- **Steps 3b & 3c (`EXP-015b` Shared-Basis vs. `EXP-015c` Equal-Budget Dense on `v3`):** Trained from scratch in parallel (`seed=42`, `36k` steps, `train_ft + 15k replay`, `gan_start=12k`, `lr=1e-3`, `2.25 h` each) comparing `configs/student_300k_pawp.yaml` (`281,078` unique / `328,158` total, `K=2` shared bases) against `configs/student_300k_dense.yaml` (`281,442` unique = total, `0` shared bases):
+
+| Model (`v3`) | Unique / Total Params | `best_val_mel` | Held-Out ASR EN (`n=30`) | Held-Out ASR NE (`n=30`) | Held-Out ASR Mix (`n=9`) | Untouched Test NE PER (`n=300`) | Untouched Test EN PER (`n=300`) | CTC 77-Pair Acoustic Distinct / Exact-Both |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| **`EXP-015a` `PAWP-1.5M v3`** | `1,490,828 / 1,490,828` | — | `4.02% / 1.50%` | `12.35% / 1.75%` | `12.32% / 5.32%` | `5.04%` | `4.02%` | `64/77 (83.1%)` / `45/77 (58.4%)` |
+| **`EXP-015b` `PAWP-300K` Shared** | `281,078 / 328,158` | **`0.87684`** | `6.88% / 2.93%` | **`19.71% / 5.93%`** | **`12.02% / 5.01%`** | `6.28%` (`S=628, D=416`) | `7.09%` (`S=1047, D=393`) | `60/77 (77.9%)` / `30/77 (39.0%)` |
+| **`EXP-015c` `Dense-300K` (0 shared)** | `281,442 / 281,442` | `0.87778` | **`6.15% / 2.42%`** | `20.21% / 6.59%` | `18.09% / 9.01%` | **`5.54%`** (`S=529, D=389`) | **`5.24%`** (`S=724, D=324`) | `61/77 (79.2%)` / `29/77 (37.7%)` |
+
+- **Paired Bootstrap (`Shared - Dense`, `n=300` NE + `n=300` EN untouched `test.jsonl`, 1,000 resamples, `artifacts/reports/exp015bc_300k_shared_vs_dense_test300.json`):**
+  - **Untouched NE PER:** Dense beat Shared by `-0.97%` absolute (`Shared - Dense = +0.00974`, 95% CI `[+0.00555, +0.01408]`, `p < 0.001`).
+  - **Untouched EN PER:** Dense beat Shared by `-1.90%` absolute (`Shared - Dense = +0.01896`, 95% CI `[+0.01439, +0.02346]`, `p < 0.001`).
+- **Honest Verdict:**
+  1. Clean `v3` alignment substantially improved `PAWP-300K` in only `36k` steps (vs. `100k` on `v2` `EXP-011-FT`: EN `8.80%/3.92% -> 6.88%/2.93%`, NE CER `6.93% -> 5.93%`, Mix `16.28%/8.74% -> 12.02%/5.01%`).
+  2. On the small held-out ASR set (`n=30/30/9`), Shared-Basis beat Dense on `best_val_mel`, NE ASR, and especially Code-Mix ASR (`12.02%/5.01%` vs. `18.09%/9.01%`), **but** on the much larger `300+300` untouched `test.jsonl` phoneme intelligibility benchmark (`ctc_aligner_v3.pt`), equal-unique-parameter **Dense (`281,442` params, `14.2%` fewer materialized compute params) significantly beat `K=2` Shared-Basis on both monolingual NE PER (`5.54%` vs. `6.28%`, `p < 0.001`) and EN PER (`5.24%` vs. `7.09%`, `p < 0.001`)**, approaching `PAWP-1.5M v3` (`5.04%` / `4.02%`) at `5.3x` fewer parameters. This is a clean falsification of `K=2` cross-layer basis sharing for monolingual phoneme fidelity at `281K`, while validating the decoder-centric `281K` architecture itself.
 
 ---
 

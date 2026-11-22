@@ -6,7 +6,8 @@
 |---|---:|---:|---:|---|---:|---|
 | `PAWP-1.5M` (uncompressed baseline) | `1,490,390` | `1,490,390` | `1,293,750` | `5.96 MB / 2.98 MB / 1.49 MB` | `1,500,000` | Initial bilingual 24 kHz ConvNeXt1D+iSTFT architecture (`~106.1 MMAC/s`) |
 | `PAWP-1M` (`configs/student_1m_pawp.yaml`) | `1,223,734` | **`928,854`** | `1,125,398` | `3.72 MB / 1.86 MB / 0.93 MB` | `1,000,000` | Cross-depth `K=2` shared basis pools (`r_layer=16`, `r_lang=8`) + `28`-dim articulatory conditioning (`~63.3 MMAC/s`) |
-| `PAWP-300K` (`configs/student_300k_pawp.yaml`) | `328,158` | **`281,078`** | `309,702` | `1.12 MB / 0.56 MB / 0.28 MB` | `300,000` | Decoder-centric (`52.6%`), `n_fft=512`, `K=2` shared bases + `28`-dim articulatory conditioning (`20.96 MMAC/s`, `EXP-011` completed) |
+| `PAWP-300K` Shared (`configs/student_300k_pawp.yaml`) | `328,158` | **`281,078`** | `309,702` | `1.12 MB / 0.56 MB / 0.28 MB` | `300,000` | Decoder-centric (`52.6%`), `n_fft=512`, `K=2` shared bases + `28`-dim articulatory conditioning (`20.96 MMAC/s`, `EXP-011` / `EXP-015b`) |
+| `Dense-300K` Baseline (`configs/student_300k_dense.yaml`) | `281,442` | **`281,442`** | `262,986` | `1.13 MB / 0.56 MB / 0.28 MB` | `300,000` | Equal-unique-param dense baseline (`0` shared bases, `14.2%` fewer materialized compute params, `EXP-015c`) |
 | `OmniVoice` Teacher (LM + Audio Tokenizer) | `1,015,378,394` | `1,015,378,394` | `1,015,378,394` | `~2.84 GB` (BF16+F32) | — | Zero-shot 24 kHz teacher baseline (`813.98M` LM + `201.40M` tokenizer) |
 | `PiVo-1.4M` (external reference) | `1,401,562` | `1,401,562` | `1,401,562` | `5.6 MB` FP32 | — | English-only, 16 kHz FARGAN vocoder |
 
@@ -26,7 +27,10 @@
 | **`PAWP-1.5M` + WSP `Null-64` (Zero-Training Edit, `EXP-009`)** | **`4.73% / 2.02%`** | **`10.09% / 1.93%`** | **`11.65% / 4.90%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | Nepali-orthogonal null-space (`4.7%` edited) |
 | **`PAWP-1.0M` Decoder-Centric (Zero-Shot, `EXP-010b`)** | **`9.56% / 6.91%`** | **`22.76% / 9.73%`** | **`19.09% / 9.66%`** | `100.0%` (`0%` `/ʃ/` symbol bleed) | `998.8K` params; zero-shot post-hoc compression (no retraining) |
 | **`PAWP-300K` Base (`EXP-011`, Step 80k)** | `8.40% / 5.32%` | `20.49% / 7.49%` | `16.95% / 7.74%` | `100.0%` (`0%` `/ʃ/` symbol bleed) | `281,078` unique / `328,158` total; trained end-to-end on v2 cache (pre-lexicon) |
-| **`PAWP-300K` Target Voice (`EXP-011-FT`, +20k)** | `8.80% / 3.92%` | `19.42% / 6.93%` | `16.28% / 8.74%` | `100.0%` (`0%` `/ʃ/` symbol bleed) | `281,078` unique / `328,158` total; Mix CER (`7.74->8.74%`) & EN WER (`8.40->8.80%`) regressed slightly; pre-lexicon v2 cache |
+| **`PAWP-300K` Target Voice (`EXP-011-FT`, +20k)** | `8.80% / 3.92%` | `19.42% / 6.93%` | `16.28% / 8.74%` | `100.0%` (`0%` `/ʃ/` symbol bleed) | `281,078` unique / `328,158` total; pre-lexicon v2 cache |
+| **`PAWP-1.5M v3` (`EXP-015a`, clean v3 +10k FT)** | **`4.02% / 1.50%`** | **`12.35% / 1.75%`** | `12.32% / 5.32%` | `100.0%` smoke · `64/77` CTC distinct (`45/77` exact) | Untouched `300+300` PER: **NE `5.04%`**, **EN `4.02%`** (best overall) |
+| **`PAWP-300K v3` Shared (`EXP-015b`, 36k)** | `6.88% / 2.93%` | **`19.71% / 5.93%`** | **`12.02% / 5.01%`** | `100.0%` smoke · `60/77` CTC distinct (`30/77` exact) | `281,078` unique / `328,158` total; untouched `300+300` PER: NE `6.28%`, EN `7.09%` |
+| **`Dense-300K v3` Baseline (`EXP-015c`, 36k)** | **`6.15% / 2.42%`** | `20.21% / 6.59%` | `18.09% / 9.01%` | `100.0%` smoke · `61/77` CTC distinct (`29/77` exact) | `281,442` unique = total (`0` shared); untouched `300+300` PER: **NE `5.54%`**, **EN `5.24%`** (`p<0.001` vs Shared) |
 
 ### Phonological Smoke Checks (Internal G2P + Non-Silent Audio)
 

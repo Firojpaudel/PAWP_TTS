@@ -20,29 +20,41 @@ from pawp_tts.interfaces.container import build_container
 DEVICE = torch.device(os.environ.get("PAWP_GRADIO_DEVICE", "cpu"))
 
 MODEL_REGISTRY: dict[str, tuple[str, str]] = {
-    "PAWP-1.5M Polished Default (EXP-012, HF Default)": (
+    "PAWP-1.5M v3 (EXP-015a — Best Overall, Clean v3 Alignment)": (
+        "configs/student_1_5m.yaml",
+        "artifacts/checkpoints/exp015_1_5m_v3/best.safetensors",
+    ),
+    "PAWP-1.5M v3 + Pause WSP-96 (EXP-016 — 27:1 <sp> Pause Edit)": (
+        "configs/student_1_5m.yaml",
+        "artifacts/checkpoints/exp016_pause_wsp/wsp_pause96.safetensors",
+    ),
+    "PAWP-1.5M v3 + Retroflex FT-0.4% (EXP-017 — ɳ vs n̪ NE Residual)": (
+        "configs/student_1_5m.yaml",
+        "artifacts/checkpoints/exp017_retroflex_wsp/control_sameparam_ne_ft.safetensors",
+    ),
+    "PAWP-1.5M v3 + Retroflex ROME Rank-1 (EXP-017 — Zero-Training)": (
+        "configs/student_1_5m.yaml",
+        "artifacts/checkpoints/exp017_retroflex_wsp/wsp_rome_ne_rank1.safetensors",
+    ),
+    "PAWP-300K v3 Shared-Basis (EXP-015b — Live, 281K Unique)": (
+        "configs/student_300k_pawp.yaml",
+        "artifacts/checkpoints/exp015_300k_shared_v3/latest.safetensors",
+    ),
+    "Dense-300K v3 Baseline (EXP-015c — Live, 281.4K Dense)": (
+        "configs/student_300k_dense.yaml",
+        "artifacts/checkpoints/exp015_300k_dense_v3/latest.safetensors",
+    ),
+    "PAWP-1.5M v2 Polished (EXP-012 — Current HF Default)": (
         "configs/student_1_5m.yaml",
         "artifacts/checkpoints/exp012_polish/best.safetensors",
     ),
-    "PAWP-300K Target Voice (EXP-011-FT, 281K Unique / 1.1 MB)": (
+    "PAWP-300K v2 Target Voice (EXP-011-FT — 281K Unique / 1.1 MB)": (
         "configs/student_300k_pawp.yaml",
         "artifacts/checkpoints/exp011_300k_ft/best.safetensors",
     ),
-    "PAWP-300K Base (EXP-011, 80k Steps, 281K Unique)": (
-        "configs/student_300k_pawp.yaml",
-        "artifacts/checkpoints/exp011_300k/best.safetensors",
-    ),
-    "PAWP-1.5M + WSP E3 (EXP-009, HF WSP Variant)": (
+    "PAWP-1.5M + WSP E3 (EXP-009 — HF WSP Variant)": (
         "configs/student_1_5m.yaml",
         "artifacts/checkpoints/exp009_wsp/pawp_1_5m_wsp_e3.safetensors",
-    ),
-    "PAWP-1.5M Target Voice (EXP-008-FT, Step 20k)": (
-        "configs/student_1_5m.yaml",
-        "artifacts/checkpoints/exp008/best.safetensors",
-    ),
-    "PAWP-1.5M Pre-FT Base (EXP-007, Step 92k)": (
-        "configs/student_1_5m.yaml",
-        "artifacts/checkpoints/exp007/latest.safetensors",
     ),
 }
 
@@ -51,18 +63,20 @@ AVAILABLE_MODELS: dict[str, tuple[str, str]] = {
 }
 DEFAULT_MODEL_LABEL = next(iter(AVAILABLE_MODELS.keys()))
 
-_LOADED_MODELS: dict[str, tuple[PAWPBilingualTTS, int]] = {}
+_LOADED_MODELS: dict[str, tuple[float, PAWPBilingualTTS, int]] = {}
 
 
 def _get_model(label: str) -> tuple[PAWPBilingualTTS, int]:
-    if label not in _LOADED_MODELS:
-        cfg_path, ckpt_path = AVAILABLE_MODELS[label]
+    cfg_path, ckpt_path = AVAILABLE_MODELS[label]
+    mtime = Path(ckpt_path).stat().st_mtime
+    cached = _LOADED_MODELS.get(label)
+    if cached is None or cached[0] != mtime:
         cfg = load_student_config(cfg_path)
         m = PAWPBilingualTTS(cfg).to(DEVICE).eval()
         CheckpointManager.load(m, ckpt_path)
         n_params = sum(p.numel() for p in m.parameters())
-        _LOADED_MODELS[label] = (m, n_params)
-    return _LOADED_MODELS[label]
+        _LOADED_MODELS[label] = (mtime, m, n_params)
+    return _LOADED_MODELS[label][1], _LOADED_MODELS[label][2]
 
 
 _default_model = _get_model(DEFAULT_MODEL_LABEL)
@@ -99,6 +113,7 @@ TEXT_EXAMPLES = [
     ["नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्।"],
     ["तातो चिया र च्याउको सुपले जाडो मौसममा शरीरलाई निकै आराम दिन्छ।"],
     ["पाता र पत्ता, पना र पन्नाको उच्चारणमा फरक स्पष्ट सुनिन्छ।"],
+    ["नारायणगढको पूर्ण विवरण र कारण जान्न म अहिले कार्यालय जाँदै छु।"],
     ["Neural speech synthesis can now run completely on edge devices with very low latency."],
     ["The sudden change in the weather made the evening walk surprisingly refreshing."],
     ["Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु।"],
