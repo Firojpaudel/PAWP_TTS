@@ -1,15 +1,38 @@
 \section{Diagnostic Weight-Space Programming: Mechanisms and Confounders}
 \label{sec:wsp}
 
-We systematically evaluated zero-training, activation-guided weight edits on \texttt{PAWP-1.5M} under strict controls: hyperparameter selection on \texttt{val.jsonl} only, one-shot verification on untouched $300+300$ \texttt{test.jsonl}, paired-bootstrap 95\% CIs, matched-norm random edits, and same-parameter gradient fine-tuning controls. Three experiments revealed both genuine mechanistic properties and critical methodological pitfalls.
+Zero-training, activation-guided weight edits were evaluated systematically on \texttt{PAWP-1.5M} under strict controls: hyperparameter selection on \texttt{val.jsonl} only, one-shot verification on untouched $300+300$ \texttt{test.jsonl}, paired-bootstrap 95\% CIs, matched-norm random edits, and same-parameter gradient fine-tuning controls. Three experiments revealed both genuine mechanistic properties and critical methodological pitfalls; Figure~\ref{fig:forest} summarizes every edit against its controls.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.8\textwidth]{figures/wsp_forest.pdf}
+  \caption{\textbf{Weight edits against matched controls.} Change in Nepali PER on untouched test data ($n=300$, paired bootstrap 95\% CI). Edits (blue) are compared with a random edit of the same location and norm (gray) and gradient fine-tuning of the same parameters (orange). The unconstrained rank-1 edit regresses; the pause edit is not better than its random control; a single global duration-bias parameter (green), selected on validation, gives the only significant improvement.}
+  \label{fig:forest}
+\end{figure*}
 
 \subsection{Unconstrained Shared Edits vs.\ Language-Residual Isolation}
 In \texttt{EXP-013a}, an unconstrained Rank-1 edit in shared \texttt{acoustic\_blocks.3.pw2.weight} reduced target confusion but degraded overall PER (NE $+1.22\%$, EN $+1.75\%$). Furthermore, grapheme auditing revealed that 90.3\% (65/72) of the targeted \texttt{/b/ $\rightarrow$ /w/} errors were a \texttt{v2} cache-label artifact on \textit{va} words. Rebuilding \texttt{v3} eliminated the artifact entirely, underscoring that mechanistic editing must never be applied before label consistency is verified.
 
 \subsection{Word-Boundary Pause Selectivity and Global Duration Bias (\texttt{EXP-016})}
-On clean \texttt{v3} validation data, word-boundary \texttt{<sp>} tokens were under-predicted ($6.16$ vs.\ $10.38$ frames) and 90.8\% linearly separable from regular phonemes at the 96-dim input of \texttt{duration\_predictor.proj.weight} (96 params = 0.0064\% of model). A ROME-whitened Rank-1 update achieved \textbf{27:1 surgical selectivity} on untouched test data (\texttt{<sp>} $+1.001$ frames vs.\ phonemes $+0.037$ frames), reduced deletions ($-19$ NE, $-21$ EN), and beat dev-tuned 96-param gradient FT (NE PER 4.93\% vs.\ 5.55\%).
+On clean \texttt{v3} validation data, word-boundary \texttt{<sp>} tokens were under-predicted ($6.16$ vs.\ $10.38$ frames) and 90.8\% linearly separable from regular phonemes at the 96-dim input of \texttt{duration\_predictor.proj.weight} (96 params = 0.0064\% of model). A ROME-whitened Rank-1 update achieved \textbf{27:1 surgical selectivity} on untouched test data (\texttt{<sp>} $+1.001$ frames vs.\ phonemes $+0.037$ frames), reduced deletions ($-19$ NE, $-21$ EN), and beat dev-tuned 96-param gradient FT (NE PER 4.93\% vs.\ 5.55\%; Figure~\ref{fig:dur}b).
 
-However, the edit did not beat a matched random-96 control on overall NE PER (4.93\%, $p=0.177$ vs.\ 4.84\%, $p=0.004$). A follow-up per-class duration audit on 169 Nepali \texttt{v3} validation utterances (13,450 non-\texttt{<sp>} phonemes) uncovered the exact cause: baseline durations are \textbf{globally biased short by $-7.3\%$} across every phoneme class (pred $6.105$f vs.\ GT $6.585$f; ratio $0.927$ overall, ranging from $0.869$ to $0.965$), consistent with Jensen's inequality under log-duration training. Selecting a 1-parameter global duration bias shift (\texttt{duration\_predictor.proj.bias}) strictly on \texttt{val.jsonl} ($n=150$ NE + $150$ EN; selected $\Delta b = +0.10$, improving average validation PER from 4.625\% to 4.448\%) and evaluating \textbf{once} on untouched \texttt{test.jsonl} ($n=300$ NE + $300$ EN) reduced Nepali PER from 4.744\% ($D=401$) to \textbf{4.513\%} ($D=373$; $\Delta = -0.00271$, 95\% CI $[-0.00414, -0.00118]$, $p<0.001$) with zero English regression (4.044\% $\rightarrow$ 4.016\%, $p=0.317$). This confirms that global speaking-rate calibration accounts for the random-96 PER gain, and points to bias-corrected or linear-domain duration loss as the proper training-time fix.
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}[t]{0.47\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/duration_bias.pdf}
+    \caption{Predicted / aligned duration by phoneme class.}
+  \end{subfigure}\hfill
+  \begin{subfigure}[t]{0.47\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/pause_selectivity.pdf}
+    \caption{Duration change from the 96-parameter pause edit and controls.}
+  \end{subfigure}
+  \caption{\textbf{Duration diagnostics.} (a) Every phoneme class is predicted 3.5--13\% too short, a global bias consistent with log-domain duration training. (b) The pause edit lengthens word-boundary pauses 27$\times$ more than regular phonemes, but a random edit of equal norm also lengthens everything slightly, which explains its PER gain.}
+  \label{fig:dur}
+\end{figure*}
+
+However, the edit did not beat a matched random-96 control on overall NE PER (4.93\%, $p=0.177$ vs.\ 4.84\%, $p=0.004$). A per-class duration audit (169 Nepali validation utterances, 13,450 phonemes) found the cause: baseline durations are \textbf{globally biased short by $-7.3\%$} across every phoneme class (pred $6.105$f vs.\ GT $6.585$f; ratio $0.927$ overall, ranging from $0.869$ to $0.965$), consistent with Jensen's inequality under log-duration training. Selecting a 1-parameter global duration bias shift (\texttt{duration\_predictor.proj.bias}) strictly on \texttt{val.jsonl} ($n=150$ NE + $150$ EN; selected $\Delta b = +0.10$, improving average validation PER from 4.625\% to 4.448\%) and evaluating \textbf{once} on untouched \texttt{test.jsonl} ($n=300$ NE + $300$ EN) reduced Nepali PER from 4.744\% ($D=401$) to \textbf{4.513\%} ($D=373$; $\Delta = -0.00271$, 95\% CI $[-0.00414, -0.00118]$, $p<0.001$) with zero English regression (4.044\% $\rightarrow$ 4.016\%, $p=0.317$). Global speaking-rate calibration thus explains the random-96 gain; the proper fix is a bias-corrected duration loss at training time.
 
 \subsection{Target Validity Against Native Human Recordings (\texttt{EXP-017})}
 After \texttt{v3} re-alignment, the top remaining Nepali substitution on validation was retroflex nasal to dental nasal (IPA retroflex nasal $\rightarrow$ dental /n/). Applying a ROME null-space Rank-1 edit strictly inside the Nepali-only low-rank residual \texttt{encoder\_blocks.0.pw2.\{u\_ne, v\_ne\}} (6,144 params = 0.41\%) achieved \textbf{exact 0.000\% English collateral} by construction and 0.00\% Nepali PER collateral (5.036\% $\rightarrow$ 5.026\%, $p=0.495$).

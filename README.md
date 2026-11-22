@@ -132,7 +132,7 @@ flowchart LR
 ### `PAWP-1.5M` Parameter Breakdown
 
 <p align="center">
-  <img src="docs/figures/architecture.svg" alt="PAWP-TTS architecture: embeddings, text encoder with language-gated residuals, variance adaptor, acoustic network and iSTFT waveform decoder, with parameter counts" width="100%">
+  <img src="docs/figures/architecture_paper.svg" alt="PAWP-TTS architecture: (a) model overview with parameter counts, (b) language-gated ConvNeXt1D block with English/Nepali low-rank residuals, (c) iSTFT waveform head" width="100%">
 </p>
 
 | Component | Parameters | Share |

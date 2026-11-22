@@ -1,11 +1,21 @@
 \section{Experimental Setup and Results}
 \label{sec:exp}
 
+\paragraph{Data and training.}
+Models train on about 225\,h: 77\,h of English read speech (a LibriSpeech~\cite{panayotov2015librispeech} subset), 108\,h of Nepali (internally prepared studio recordings and read speech, including OpenSLR Nepali), and 34\,h of code-mixed speech. Utterances are 1--12\,s, and sentences in validation or test splits are removed from training. For a single cross-lingual target voice, a fine-tuned OmniVoice~\cite{omnivoice2026} teacher synthesized English and Nepali in one voice (22.7\,h EN, 15.7\,h NE), kept only when an independent ASR transcribed it with CER $\le$0.10 (EN) or $\le$0.12 (NE). Supplementary synthetic Nepali receives half the loss weight of human recordings. Training is multi-speaker (1,815 speakers); exported models keep one speaker vector. Training runs in BF16 on one RTX~4090 with L1 log-mel, multi-resolution STFT, duration, $F_0$/voicing and energy losses plus multi-period/multi-resolution adversarial and feature-matching losses. On half of the steps the acoustic network is conditioned on its own predicted prosody rather than ground truth, which closed a large train/inference gap. Durations come from Viterbi forced alignment with a training-only CTC phoneme recognizer~\cite{graves2006ctc}.
+
 \subsection{Clean \texttt{v3} Data Alignment (\texttt{EXP-014})}
-Early training (\texttt{v2}) predated our final Nepali lexicon and \textit{va} $\rightarrow$ \texttt{/b/} rule update. Rebuilding the 136,807-utterance feature cache (\texttt{v3}) with the current frontend, retraining our frozen CTC phoneme recognizer (\texttt{ctc\_aligner\_v3.pt}, CTC loss $\approx$1.0 $\rightarrow$ 0.614), and re-extracting Viterbi forced-alignment durations reduced single-frame duration collapses by $\approx$3$\times$ and dropped spurious \textit{va}-word \texttt{/b/ $\rightarrow$ /w/} confusion on 300 Nepali test utterances from 55.1\% (65/118) to \textbf{0.0\%} (0/118).
+Early training (\texttt{v2}) predated the final Nepali lexicon and \textit{va} $\rightarrow$ \texttt{/b/} rule update. Rebuilding the 136,807-utterance feature cache (\texttt{v3}) with the current frontend, retraining the frozen CTC phoneme recognizer (\texttt{ctc\_aligner\_v3.pt}, CTC loss $\approx$1.0 $\rightarrow$ 0.614), and re-extracting Viterbi forced-alignment durations reduced single-frame duration collapses by $\approx$3$\times$ and dropped spurious \textit{va}-word \texttt{/b/ $\rightarrow$ /w/} confusion on 300 Nepali test utterances from 55.1\% (65/118) to \textbf{0.0\%} (0/118). Fine-tuning on consistent labels then lowered validation PER from 7.06\% to 3.96\% (Nepali) and 5.29\% to 4.33\% (English; Figure~\ref{fig:labels}).
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/label_consistency.pdf}
+  \caption{\textbf{Label consistency matters more than any edit.} Rebuilding the feature cache and phoneme recognizer with the current frontend (v2$\to$v3) nearly halves Nepali PER (a) and removes the spurious \textit{va}-word /b/$\to$/w/ errors that earlier looked like a model defect (b).}
+  \label{fig:labels}
+\end{figure}
 
 \subsection{Bilingual Synthesis Quality and Equal-Budget 281K Ablation}
-Table~\ref{tab:params} summarizes the 4-metric parameter footprint and held-out evaluation across \texttt{PAWP-1.5M v3} (\texttt{EXP-015a}, 10k FT steps on \texttt{v3} from \texttt{EXP-012}) and the equal-budget 281K variants (\texttt{EXP-015b} Shared vs.\ \texttt{EXP-015c} Dense, trained from scratch for 36k steps on \texttt{v3}, identical recipe, \texttt{seed=42}). Held-out ASR is measured on $n=30$ EN, $n=30$ NE, and $n=9$ code-mixed utterances using a single recognizer (reported alongside the human studio audio floor as an intelligibility proxy, not a naturalness comparison). Untouched test PER is measured on $n=300$ NE + $n=300$ EN utterances via \texttt{ctc\_aligner\_v3.pt}, and minimal-pair contrast is scored acoustically on our internal 77-pair Nepali/bilingual set.
+Table~\ref{tab:params} summarizes the 4-metric parameter footprint and held-out evaluation across \texttt{PAWP-1.5M v3} (\texttt{EXP-015a}, 10k FT steps on \texttt{v3} from \texttt{EXP-012}) and the equal-budget 281K variants (\texttt{EXP-015b} Shared vs.\ \texttt{EXP-015c} Dense, trained from scratch for 36k steps on \texttt{v3}, identical recipe, \texttt{seed=42}). Held-out ASR is measured on $n=30$ EN, $n=30$ NE, and $n=9$ code-mixed utterances using a single recognizer (reported alongside the human studio audio floor as an intelligibility proxy, not a naturalness comparison). Untouched test PER is measured on $n=300$ NE + $n=300$ EN utterances via \texttt{ctc\_aligner\_v3.pt}, and minimal-pair contrast is scored acoustically on an internal 77-pair Nepali/bilingual set.
 
 \begin{table*}[t]
 \centering
@@ -26,8 +36,22 @@ Human Floor (ASR) & --- & --- & 2.63 / 0.75 & 11.60 / 3.82 & 25.91 / 12.88 & ---
 \end{tabular}
 \end{table*}
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/intelligibility.pdf}
+  \caption{\textbf{Held-out ASR character error rate} (one recognizer; $n=30$ EN, 30 NE, 9 code-mixed sentences). Gray bars are the same recognizer on the human recordings of those sentences; lower synthetic CER reflects clean, canonical read speech and is an intelligibility proxy, not a quality comparison.}
+  \label{fig:asr}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/shared_vs_dense.pdf}
+  \caption{\textbf{Shared-basis vs.\ dense at equal unique parameters (281K).} Paired-bootstrap difference in test PER (shared $-$ dense, 95\% CI; $n=300$ NE + 300 EN). Single training seed; multi-seed results pending.}
+  \label{fig:shared}
+\end{figure}
+
 \paragraph{Single-Seed Shared vs.\ Dense Trade-Off.}
-At \texttt{seed=42}, \texttt{PAWP-300K Shared} achieved lower \texttt{val\_mel} (0.8768 vs.\ 0.8778), stronger \texttt{val\_energy} (1.50 vs.\ 1.60), and lower Code-Mix ASR WER (12.02\% vs.\ 18.09\%, $n=9$). However, on the larger untouched $300+300$ \texttt{test.jsonl} PER benchmark (1,000-resample paired bootstrap), equal-unique-parameter \texttt{Dense-300K} outperformed \texttt{Shared} on both Nepali PER ($-0.97\%$ absolute, 95\% CI $[+0.0056, +0.0141]$, $p<0.001$) and English PER ($-1.90\%$ absolute, 95\% CI $[+0.0144, +0.0235]$, $p<0.001$), approaching \texttt{PAWP-1.5M v3} at 5.3$\times$ fewer parameters. Multi-seed verification (\texttt{seeds 101, 202}) is running to report mean $\pm$ std before finalizing this architectural comparison.
+At \texttt{seed=42}, \texttt{PAWP-300K Shared} achieved lower \texttt{val\_mel} (0.8768 vs.\ 0.8778), stronger \texttt{val\_energy} (1.50 vs.\ 1.60), and lower Code-Mix ASR WER (12.02\% vs.\ 18.09\%, $n=9$). However, on the larger untouched $300+300$ \texttt{test.jsonl} PER benchmark (1,000-resample paired bootstrap), equal-unique-parameter \texttt{Dense-300K} outperformed \texttt{Shared} on both Nepali PER (dense lower by 0.97\,pp; shared $-$ dense $=+0.97$\,pp, 95\% CI $[+0.56, +1.41]$, $p<0.001$) and English PER (dense lower by 1.90\,pp; 95\% CI $[+1.44, +2.35]$, $p<0.001$), approaching \texttt{PAWP-1.5M v3} at 5.3$\times$ fewer parameters (Figure~\ref{fig:shared}). Multi-seed verification (\texttt{seeds 101, 202}) is running to report mean $\pm$ std before finalizing this architectural comparison.
 
 \paragraph{Latency and Zero-Shot Compression.}
-On 4-thread x86\_64 CPU, folded \texttt{PAWP-1.5M} ONNX achieves \textbf{1.11\,ms} p50 neural streaming TTFA (1.52\,ms p99, 60\,ms chunk) and \textbf{0.0058 RTF} (173$\times$ real-time), with 0.16\,ms p50 frontend G2P latency. In contrast, post-hoc one-shot SVD (\texttt{EXP-010}) collapses by 500K parameters without recovery training, demonstrating that end-to-end compact training is essential below 1M parameters.
+On a 4-thread x86\_64 CPU, folded \texttt{PAWP-1.5M} ONNX decodes a 60\,ms audio chunk in 1.11\,ms p50 (1.52\,ms p99), about 0.0058 real-time factor, and the frontend takes 0.16\,ms p50 per sentence. These are per-chunk compute times measured after the utterance is encoded; full end-to-end time-to-first-audio with stateful streaming is future work. In contrast, post-hoc one-shot SVD (\texttt{EXP-010}) collapses by 500K parameters without recovery training, demonstrating that end-to-end compact training is essential below 1M parameters.

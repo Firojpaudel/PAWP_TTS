@@ -1,0 +1,108 @@
+% PAWP-TTS architecture (TikZ). Included from sections/04_architecture_frontend.tex.
+% (a) model overview  (b) language-gated ConvNeXt1D block  (c) iSTFT waveform head
+\begin{tikzpicture}[
+  font=\footnotesize,
+  >={Stealth[length=4pt,width=3.2pt]},
+  blk/.style={draw=black!75, line width=0.5pt, rounded corners=2pt, minimum height=5.6mm,
+              minimum width=30mm, align=center, inner sep=2pt},
+  enc/.style={blk, fill=blue!7},
+  var/.style={blk, fill=green!8},
+  aco/.style={blk, fill=violet!7},
+  dec/.style={blk, fill=red!6},
+  emb/.style={blk, fill=cyan!7},
+  io/.style={blk, draw=none, fill=none, minimum height=4.6mm},
+  det/.style={blk, dashed, fill=black!3},
+  sm/.style={blk, minimum width=21mm, minimum height=5mm},
+  op/.style={circle, draw=black!75, line width=0.5pt, inner sep=0pt, minimum size=3.6mm},
+  rep/.style={font=\scriptsize\itshape, text=black!65},
+  prm/.style={font=\scriptsize, text=black!55, anchor=west},
+  flow/.style={->, line width=0.55pt, black!80},
+  ttl/.style={font=\small\bfseries, anchor=south}
+]
+
+% ======================= (a) overview ==========================================
+\begin{scope}[local bounding box=A]
+  \node[io]  (txt)  at (0,0) {Text (EN / NE / code-mixed)};
+  \node[det, above=2.6mm of txt] (fe) {Bilingual frontend (0 params)\\[-1pt]{\scriptsize phonemes + language, stress, boundary tags}};
+  \node[emb, above=2.6mm of fe] (emb) {Embedding};
+  \node[enc, above=3.2mm of emb, minimum height=7mm] (enc) {Gated ConvNeXt1D block $\times 4$};
+  \node[var, above=3.4mm of enc] (dur) {Duration predictor};
+  \node[var, above=2.4mm of dur] (lr)  {Length regulator};
+  \node[var, above=2.4mm of lr]  (pe)  {Pitch / energy predictors};
+  \node[aco, above=3.4mm of pe, minimum height=7mm] (aco) {Gated ConvNeXt1D block $\times 4$};
+  \node[aco, above=2.4mm of aco] (mel) {Linear $\rightarrow$ log-mel};
+  \node[dec, above=3.4mm of mel, minimum height=7mm] (dec) {iSTFT waveform decoder};
+  \node[io,  above=2.6mm of dec] (wav) {24\,kHz waveform};
+
+  \foreach \a/\b in {txt/fe, fe/emb, emb/enc, enc/dur, dur/lr, lr/pe, pe/aco, aco/mel, mel/dec, dec/wav}
+    \draw[flow] (\a) -- (\b);
+
+  % repeat brackets
+  % variance adaptor group
+  \node[draw=black!45, dashed, rounded corners=3pt, fit=(dur)(lr)(pe), inner sep=2.2mm] (va) {};
+  \node[rep, left=0.6mm of va.west, rotate=90, anchor=south] {variance adaptor};
+  % parameter counts
+  \node[prm] at ([xshift=2.2mm]emb.east) {18K};
+  \node[prm] at ([xshift=2.2mm]enc.east) {367K};
+  \node[prm] at ([xshift=2.2mm]va.east)  {62K};
+  \node[prm] at ([xshift=2.2mm]aco.east) {378K};
+  \node[prm] at ([xshift=2.2mm]dec.east) {665K};
+  % language masks into gated blocks
+  \node[font=\scriptsize, text=black!60, align=center] (mask) at ([xshift=-17mm]lr.west) {language\\mask $m(t)$};
+  \draw[->, black!50, densely dotted, line width=0.5pt] (mask.south) |- (enc.west);
+  \draw[->, black!50, densely dotted, line width=0.5pt] (mask.north) |- (aco.west);
+  % durations feed regulator
+  \draw[->, black!55, line width=0.45pt] (dur.east) -- ++(3mm,0) |- (lr.east);
+\end{scope}
+\node[ttl] at ([yshift=1mm]A.north) {(a) PAWP-1.5M (1,490,390 parameters)};
+
+% ======================= (b) gated ConvNeXt1D block =============================
+\begin{scope}[shift={(8.2,2.55)}, local bounding box=B]
+  \node[io] (bx) at (0,0) {$x$};
+  \node[enc, sm, above=3mm of bx] (dw) {DWConv1D (look-ahead 1)};
+  \node[enc, sm, above=2.4mm of dw] (ln) {LayerNorm};
+  \node[enc, sm, above=2.4mm of ln, minimum height=6.4mm] (pw1) {$W_1 x$};
+  \node[enc, sm, above=2.4mm of pw1] (gl) {GELU};
+  \node[enc, sm, above=2.4mm of gl, minimum height=6.4mm] (pw2) {$W_2 h$};
+  \node[op, above=3mm of pw2] (add) {$+$};
+  \node[io, above=2.4mm of add] (by) {$y$};
+  \foreach \a/\b in {bx/dw, dw/ln, ln/pw1, pw1/gl, gl/pw2, pw2/add, add/by} \draw[flow] (\a) -- (\b);
+  \draw[flow] ([yshift=1.2mm]bx.north) -- ++(19mm,0) |- (add.east);
+  \node[font=\scriptsize, text=black!55, anchor=west] at ([xshift=13.8mm,yshift=-6mm]add.east -| bx.north) {};
+
+  % low-rank language residual branches on pw1 (drawn once, applies to both pointwise layers)
+  \node[blk, fill=orange!10, minimum width=13mm, minimum height=5mm, font=\scriptsize, anchor=east]
+        (ren) at ([xshift=-5mm,yshift=3.4mm]pw1.west) {$U_{\mathrm{en}}V_{\mathrm{en}}$};
+  \node[blk, fill=orange!10, minimum width=13mm, minimum height=5mm, font=\scriptsize, anchor=east]
+        (rne) at ([xshift=-5mm,yshift=-3.4mm]pw1.west) {$U_{\mathrm{ne}}V_{\mathrm{ne}}$};
+  \draw[black!70, line width=0.45pt] (ren.east) -- ++(1.6mm,0) |- ([yshift=1pt]pw1.west);
+  \draw[black!70, line width=0.45pt] (rne.east) -- ++(1.6mm,0) |- ([yshift=-1pt]pw1.west);
+  \node[font=\scriptsize, text=black!60, left=0.5mm of ren] {$m_{\mathrm{en}}(t)\,\cdot$};
+  \node[font=\scriptsize, text=black!60, left=0.5mm of rne] {$m_{\mathrm{ne}}(t)\,\cdot$};
+  \node[font=\scriptsize, text=black!60, align=center, anchor=north]
+        at ([yshift=-1.5mm]rne.south) {rank 16, same on $W_2$};
+\end{scope}
+\node[ttl] at ([yshift=1mm]B.center |- A.north) {(b) Language-gated ConvNeXt1D block};
+
+% ======================= (c) iSTFT decoder head =================================
+\begin{scope}[shift={(14.0,2.55)}, local bounding box=C]
+  \node[io] (cm) at (0,0) {log-mel $\in\mathbb{R}^{T\times 80}$};
+  \node[dec, sm, above=3mm of cm] (cs) {Conv1D $80\!\rightarrow\!192$};
+  \node[dec, sm, above=2.4mm of cs, minimum height=6.4mm] (cx) {ConvNeXt1D $\times 3$, $d{=}192$};
+  \node[dec, sm, above=2.4mm of cx] (ch) {Linear $\rightarrow 2{\times}513$};
+  \node[dec, sm, minimum width=10mm, above left=2.6mm and -9.5mm of ch] (mag) {$\exp(\cdot)$};
+  \node[dec, sm, minimum width=10mm, above right=2.6mm and -9.5mm of ch] (ph) {$\cos,\sin$};
+  \node[op, above=8.6mm of ch] (mul) {$\times$};
+  \node[dec, sm, above=2.6mm of mul] (ist) {iSTFT (1024 / 240)};
+  \node[io, above=2.4mm of ist] (cw) {waveform, 24\,kHz};
+  \foreach \a/\b in {cm/cs, cs/cx, cx/ch, mul/ist, ist/cw} \draw[flow] (\a) -- (\b);
+  \draw[flow] (ch.north) ++(-5mm,0) -- (mag.south);
+  \draw[flow] (ch.north) ++(5mm,0) -- (ph.south);
+  \draw[flow] (mag.north) |- (mul.west);
+  \draw[flow] (ph.north) |- (mul.east);
+  \node[font=\scriptsize, text=black!55, anchor=east] at ([xshift=-1mm]mag.west) {$|X|$};
+  \node[font=\scriptsize, text=black!55, anchor=west] at ([xshift=1mm]ph.east) {$\angle X$};
+\end{scope}
+\node[ttl] at ([yshift=1mm]C.center |- A.north) {(c) iSTFT waveform head};
+
+\end{tikzpicture}
