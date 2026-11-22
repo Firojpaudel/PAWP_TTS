@@ -1,0 +1,39 @@
+model_name: pawp-300k-dense-baseline
+target_budget: 300000
+sample_rate: 24000
+hop_length: 240
+n_fft: 512
+n_mels: 80
+
+vocab_size: 128
+num_languages: 4
+num_stress_levels: 4
+num_boundary_flags: 4
+num_speakers: 1
+
+d_model: 58
+enc_layers: 3
+enc_ff: 116
+enc_kernel: 5
+enc_lookahead: 1
+
+duration_hidden: 48
+duration_kernel: 3
+pitch_hidden: 48
+pitch_kernel: 5
+energy_hidden: 32
+energy_kernel: 5
+
+acoustic_layers: 3
+acoustic_ff: 116
+acoustic_kernel: 7
+acoustic_lookahead: 1
+
+residual_rank: 4
+
+decoder_dim: 88
+decoder_ff: 176
+decoder_layers: 3
+decoder_kernel: 7
+decoder_lookahead: 1
+istft_bins: 257
