@@ -1,0 +1,152 @@
+{
+  "exact_1_5m_params": 1490390,
+  "item1_human_retroflex": {
+    "audio_loaded": 178,
+    "utts_with_retroflex": 52,
+    "human_occ": 62,
+    "human_conf": 56,
+    "human_conf_rate": 0.90323,
+    "human_mean_margin": 3.24639
+  },
+  "item3_dur_bias_by_class": {
+    "vowel": {
+      "n": 3213,
+      "pred_mean": 7.057,
+      "gt_mean": 1.034,
+      "bias": 6.023,
+      "ratio": 6.824
+    },
+    "stop": {
+      "n": 1442,
+      "pred_mean": 5.601,
+      "gt_mean": 1.011,
+      "bias": 4.59,
+      "ratio": 5.539
+    },
+    "nasal": {
+      "n": 725,
+      "pred_mean": 5.571,
+      "gt_mean": 1.058,
+      "bias": 4.513,
+      "ratio": 5.265
+    },
+    "fricative": {
+      "n": 452,
+      "pred_mean": 7.587,
+      "gt_mean": 1.051,
+      "bias": 6.536,
+      "ratio": 7.219
+    },
+    "liquid_approx": {
+      "n": 1076,
+      "pred_mean": 4.537,
+      "gt_mean": 1.152,
+      "bias": 3.385,
+      "ratio": 3.937
+    },
+    "other": {
+      "n": 703,
+      "pred_mean": 7.739,
+      "gt_mean": 1.067,
+      "bias": 6.672,
+      "ratio": 7.254
+    }
+  },
+  "item3_global_1param_bias_sweep": [
+    {
+      "delta_bias": 0.02,
+      "ne_per": 0.04675,
+      "D": 393,
+      "delta": -0.00086,
+      "ci95": [
+        -0.00167,
+        -9e-05
+      ],
+      "p": 0.017
+    },
+    {
+      "delta_bias": 0.04,
+      "ne_per": 0.04652,
+      "D": 390,
+      "delta": -0.00088,
+      "ci95": [
+        -0.00196,
+        0.0002
+      ],
+      "p": 0.047
+    },
+    {
+      "delta_bias": 0.06,
+      "ne_per": 0.04617,
+      "D": 389,
+      "delta": -0.00155,
+      "ci95": [
+        -0.00286,
+        -0.00026
+      ],
+      "p": 0.006
+    },
+    {
+      "delta_bias": 0.08,
+      "ne_per": 0.04554,
+      "D": 380,
+      "delta": -0.00241,
+      "ci95": [
+        -0.00384,
+        -0.00101
+      ],
+      "p": 0.0
+    }
+  ],
+  "item3_v3_val_ne_dur_bias_by_class": {
+    "vowel": {
+      "n": 4360,
+      "pred_mean": 6.083,
+      "gt_mean": 6.552,
+      "bias": -0.469,
+      "ratio": 0.928
+    },
+    "stop": {
+      "n": 2283,
+      "pred_mean": 5.3,
+      "gt_mean": 5.651,
+      "bias": -0.351,
+      "ratio": 0.938
+    },
+    "nasal": {
+      "n": 1496,
+      "pred_mean": 5.756,
+      "gt_mean": 6.101,
+      "bias": -0.345,
+      "ratio": 0.943
+    },
+    "fricative": {
+      "n": 2348,
+      "pred_mean": 6.572,
+      "gt_mean": 6.81,
+      "bias": -0.238,
+      "ratio": 0.965
+    },
+    "liquid_approx": {
+      "n": 1756,
+      "pred_mean": 5.078,
+      "gt_mean": 5.621,
+      "bias": -0.543,
+      "ratio": 0.903
+    },
+    "other": {
+      "n": 1207,
+      "pred_mean": 8.722,
+      "gt_mean": 10.036,
+      "bias": -1.314,
+      "ratio": 0.869
+    },
+    "all_non_sp_phonemes": {
+      "n": 13450,
+      "pred_mean": 6.105,
+      "gt_mean": 6.585,
+      "bias": -0.48,
+      "ratio": 0.927
+    }
+  }
+}

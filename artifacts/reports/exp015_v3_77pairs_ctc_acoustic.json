@@ -1,0 +1,50 @@
+{
+  "exp015a_1_5m_v3": {
+    "n_pairs": 77,
+    "ctc_acoustic_distinct_rate": 0.8312,
+    "ctc_acoustic_distinct_count": 64,
+    "ctc_exact_both_rate": 0.5844,
+    "ctc_exact_both_count": 45,
+    "by_category_distinct": {
+      "alveolar_affricates": "10/11",
+      "dental_vs_retroflex": "8/11",
+      "english_and_codemix_contrasts": "10/11",
+      "four_way_laryngeal": "11/11",
+      "gemination": "9/11",
+      "schwa_and_flapping": "11/11",
+      "sibilant_merger_and_nasality": "5/11"
+    }
+  },
+  "exp015b_300k_shared_v3": {
+    "n_pairs": 77,
+    "ctc_acoustic_distinct_rate": 0.7792,
+    "ctc_acoustic_distinct_count": 60,
+    "ctc_exact_both_rate": 0.3896,
+    "ctc_exact_both_count": 30,
+    "by_category_distinct": {
+      "alveolar_affricates": "11/11",
+      "dental_vs_retroflex": "7/11",
+      "english_and_codemix_contrasts": "11/11",
+      "four_way_laryngeal": "11/11",
+      "gemination": "7/11",
+      "schwa_and_flapping": "11/11",
+      "sibilant_merger_and_nasality": "2/11"
+    }
+  },
+  "exp015c_300k_dense_v3": {
+    "n_pairs": 77,
+    "ctc_acoustic_distinct_rate": 0.7922,
+    "ctc_acoustic_distinct_count": 61,
+    "ctc_exact_both_rate": 0.3766,
+    "ctc_exact_both_count": 29,
+    "by_category_distinct": {
+      "alveolar_affricates": "9/11",
+      "dental_vs_retroflex": "10/11",
+      "english_and_codemix_contrasts": "11/11",
+      "four_way_laryngeal": "11/11",
+      "gemination": "4/11",
+      "schwa_and_flapping": "11/11",
+      "sibilant_merger_and_nasality": "5/11"
+    }
+  }
+}

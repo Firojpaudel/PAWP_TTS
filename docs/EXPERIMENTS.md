@@ -437,16 +437,16 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 
 | Model (`v3`) | Unique / Total Params | `best_val_mel` | Held-Out ASR EN (`n=30`) | Held-Out ASR NE (`n=30`) | Held-Out ASR Mix (`n=9`) | Untouched Test NE PER (`n=300`) | Untouched Test EN PER (`n=300`) | CTC 77-Pair Acoustic Distinct / Exact-Both |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **`EXP-015a` `PAWP-1.5M v3`** | `1,490,828 / 1,490,828` | — | `4.02% / 1.50%` | `12.35% / 1.75%` | `12.32% / 5.32%` | `5.04%` | `4.02%` | `64/77 (83.1%)` / `45/77 (58.4%)` |
+| **`EXP-015a` `PAWP-1.5M v3`** | `1,490,390 / 1,490,390` | — | `4.02% / 1.50%` | `12.35% / 1.75%` | `12.32% / 5.32%` | `5.04%` | `4.02%` | `64/77 (83.1%)` / `45/77 (58.4%)` |
 | **`EXP-015b` `PAWP-300K` Shared** | `281,078 / 328,158` | **`0.87684`** | `6.88% / 2.93%` | **`19.71% / 5.93%`** | **`12.02% / 5.01%`** | `6.28%` (`S=628, D=416`) | `7.09%` (`S=1047, D=393`) | `60/77 (77.9%)` / `30/77 (39.0%)` |
 | **`EXP-015c` `Dense-300K` (0 shared)** | `281,442 / 281,442` | `0.87778` | **`6.15% / 2.42%`** | `20.21% / 6.59%` | `18.09% / 9.01%` | **`5.54%`** (`S=529, D=389`) | **`5.24%`** (`S=724, D=324`) | `61/77 (79.2%)` / `29/77 (37.7%)` |
 
 - **Paired Bootstrap (`Shared - Dense`, `n=300` NE + `n=300` EN untouched `test.jsonl`, 1,000 resamples, `artifacts/reports/exp015bc_300k_shared_vs_dense_test300.json`):**
   - **Untouched NE PER:** Dense beat Shared by `-0.97%` absolute (`Shared - Dense = +0.00974`, 95% CI `[+0.00555, +0.01408]`, `p < 0.001`).
   - **Untouched EN PER:** Dense beat Shared by `-1.90%` absolute (`Shared - Dense = +0.01896`, 95% CI `[+0.01439, +0.02346]`, `p < 0.001`).
-- **Honest Verdict:**
+- **Honest Verdict (Single-Seed Result; Multi-Seed Running):**
   1. Clean `v3` alignment substantially improved `PAWP-300K` in only `36k` steps (vs. `100k` on `v2` `EXP-011-FT`: EN `8.80%/3.92% -> 6.88%/2.93%`, NE CER `6.93% -> 5.93%`, Mix `16.28%/8.74% -> 12.02%/5.01%`).
-  2. On the small held-out ASR set (`n=30/30/9`), Shared-Basis beat Dense on `best_val_mel`, NE ASR, and especially Code-Mix ASR (`12.02%/5.01%` vs. `18.09%/9.01%`), **but** on the much larger `300+300` untouched `test.jsonl` phoneme intelligibility benchmark (`ctc_aligner_v3.pt`), equal-unique-parameter **Dense (`281,442` params, `14.2%` fewer materialized compute params) significantly beat `K=2` Shared-Basis on both monolingual NE PER (`5.54%` vs. `6.28%`, `p < 0.001`) and EN PER (`5.24%` vs. `7.09%`, `p < 0.001`)**, approaching `PAWP-1.5M v3` (`5.04%` / `4.02%`) at `5.3x` fewer parameters. This is a clean falsification of `K=2` cross-layer basis sharing for monolingual phoneme fidelity at `281K`, while validating the decoder-centric `281K` architecture itself.
+  2. On the small held-out ASR set (`n=30/30/9`), Shared-Basis beat Dense on `best_val_mel`, NE ASR, and Code-Mix ASR (`12.02%/5.01%` vs. `18.09%/9.01%`), **but** on the much larger `300+300` untouched `test.jsonl` PER benchmark (`ctc_aligner_v3.pt`), equal-unique-parameter **Dense (`281,442` params, `14.2%` fewer materialized compute params) significantly beat `K=2` Shared-Basis on both monolingual NE PER (`5.54%` vs. `6.28%`, `p < 0.001`) and EN PER (`5.24%` vs. `7.09%`, `p < 0.001`)**. Because this is currently a **single-seed result (`seed=42`)**, two additional seeds (`101`, `202`) for both Shared and Dense are running in `tmux: pawp-multiseed` (`artifacts/checkpoints/run_exp015_multiseed.sh`) to report `mean ± std` before drawing a final architectural conclusion.
 
 ---
 
@@ -464,13 +464,15 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 | Control 1: Matched Random-96 | `6.229f` (`+0.13f`) | `6.221f` (`+0.09f`) | `4.84%` | `456` | `3.96%` | `185` | `[-0.0039, -0.0006]` (`p=0.004`) |
 | Control 2: Same-Param FT-96 (dev-tuned) | `5.398f` (`-0.70f`) | `5.767f` (`-0.36f`) | `5.55%` | `544` | `4.54%` | `226` | `[+0.0022, +0.0082]` (`p=0.999`) |
 
-- **Honest Verdict:** The 96-parameter ROME edit achieved strong surgical selectivity (`+1.001f` on `<sp>` vs. `+0.037f` on phonemes = `27:1` ratio), reduced deletions (`-19` NE, `-21` EN), and decisively beat same-parameter gradient FT (`4.93%` vs. `5.55%` NE PER). However, on overall PER it did **not** statistically beat the matched random control (`4.93%`, `p=0.177` vs. `4.84%`, `p=0.004`), so we report the selectivity win honestly without claiming an overall PER victory.
+- **Honest Verdict & Post-Audit Root-Cause Explanation (`AUDIT-003`):** The 96-parameter ROME edit achieved strong surgical selectivity (`+1.001f` on `<sp>` vs. `+0.037f` on phonemes = `27:1` ratio), reduced deletions (`-19` NE, `-21` EN), and decisively beat same-parameter gradient FT (`4.93%` vs. `5.55%` NE PER), **but** did not beat the matched random-96 control on overall PER (`4.93%`, `p=0.177` vs. `4.84%`, `p=0.004`). Post-audit diagnosis (`artifacts/reports/audit_003_diagnostics.json`) explained why random-96 improved PER:
+  - Across `169` Nepali `v3` validation utterances (`13,450` non-`<sp>` phonemes), baseline predicted durations are **globally biased short by `-7.3%` across every single phoneme class** (`pred = 6.105f` vs. CTC GT `6.585f`, `bias = -0.480f`; vowels `0.928`, stops `0.938`, nasals `0.943`, fricatives `0.965`, liquids `0.903`, affricates/other `0.869`) due to Jensen's inequality under log-duration L1/MSE training.
+  - Testing a **1-parameter global duration bias shift** (`duration_predictor.proj.bias += delta`, `n=300` NE `test.jsonl`) monotonically lowered NE PER from `4.750%` (`D=402`) to `4.675%` (`+0.02`, `p=0.017`), `4.617%` (`+0.06`, `p=0.006`), and **`4.554%` (`+0.08`, `D=380`, `delta = -0.00241`, 95% CI `[-0.00384, -0.00101]`, `p < 0.001`)**. Thus the random-96 PER gain was simply a slight accidental global duration lengthening (`+0.09f` on all phonemes), not a pause-specific effect.
 
 ---
 
 ## EXP-017: ROME Null-Space Rank-1 WSP on Nepali Retroflex Nasal (`ɳ vs n̪`) Inside `{u_ne, v_ne}`
 
-- **Date:** 2026-11-22 · **Status:** Completed & Logged (Zero-Collateral Confirmed; Gradient FT Beat Zero-Training Rank-1 on Target Margin)
+- **Date:** 2026-11-22 · **Status:** Completed & Logged (**Target Invalidated by `AUDIT-003` — Frontend Phonology Choice, Not a Model Defect**)
 - **Motivation:** After `EXP-014` + `EXP-015a` eliminated the `v2` `व -> /w/` artifact, the top remaining Nepali substitution on clean `val.jsonl` (`ctc_aligner_v3.pt`) was `ɳ -> n̪` (`7 / 10,488`). Layer localization found `probe_acc = 1.000` and highest causal activation-patching flip (`+1.1808`) at `encoder_blocks.0`.
 - **Method:** Applied ROME null-space-projected Rank-1 WSP strictly inside the Nepali-only low-rank residual `encoder_blocks.0.pw2.{u_ne, v_ne}` (`6,144` params = `0.41%` of `PAWP-1.5M`), sweeping `alpha in {0.01, 0.02, 0.04, 0.08, 0.15}` on `val.jsonl` (`best_alpha = 0.01`, `||Delta W||_F = 0.259`). Verified one-shot on untouched `test.jsonl` (`300` NE + `300` EN, `56` `ɳ` occurrences across `46` utterances, `ctc_aligner_v3.pt`, 1,000-resample paired bootstrap 95% CIs) against same-location matched-norm random Rank-1 and same-parameter 60-step gradient FT (`u_ne, v_ne` only).
 - **One-Shot Verification on Untouched `test.jsonl` (`300` NE + `300` EN):**
@@ -482,7 +484,7 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 | Control 1: Matched Random Rank-1 | `5.031%` | `4.021%` (`+0.000%`) | `41.07%` | `-0.9770` (`+0.0023`) | `[+0.0005, +0.0042]` (`p=0.992`) |
 | Control 2: Same-Param FT (60 steps) | `5.036%` | `4.021%` (`+0.000%`) | `41.07%` | **`-1.0201` (`-0.0407`)** | **`[-0.0631, -0.0231]` (`p<0.001`)** |
 
-- **Honest Verdict:** Placing the edit inside `{u_ne, v_ne}` with ROME null-space projection achieved exact zero English collateral (`0.000%` by construction) and zero Nepali collateral (`NE PER 5.036% -> 5.026%`, `p=0.495`), resolving the collateral regression of `EXP-013a`. On the target `ɳ vs n̪` contrast, zero-training ROME Rank-1 nudged the margin in the right direction (`-0.0087`, `p=0.148`) and outperformed the random control (`+0.0023`, `p=0.992`), **but** did not reach significance and was beaten by same-parameter 60-step gradient FT (`-0.0407`, `p<0.001`), while discrete top-1 confusion remained `41.07%` for all methods. This is a clean negative/partial result for zero-training single-layer Rank-1 editing on fine-grained acoustic contrasts.
+- **Post-Audit Target Validity Check (`AUDIT-003`):** Running `ctc_aligner_v3.pt` directly on the **ground-truth human `test.jsonl` studio Nepali audio** (`52` utterances containing `ण`, `62` occurrences; `artifacts/reports/audit_003_diagnostics.json`) yielded **`56 / 62 = 90.32%` `ɳ -> n̪` realization** (mean margin `m_c - m_t = +3.246`). This matches Khatiwada (2009): standard spoken Kathmandu Nepali has only three contrastive nasals (`/m, n̪, ŋ/`) and realizes orthographic `ण` as dental `/n̪/` (with retroflex `[ɳ]` only allophonically before retroflex stops). **Therefore, `EXP-017`'s `ɳ -> n̪` target is marked invalid (a frontend phonology choice, now proposed as `ण -> /n̪/` in `docs/PHONOLOGY.md`), rather than a negative WSP result.** The zero-collateral finding (`0.000%` EN drift by construction inside `{u_ne, v_ne}` and `0.00%` NE PER collateral) remains valid.
 
 ---
 
