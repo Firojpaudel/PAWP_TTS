@@ -741,6 +741,260 @@ def build_rome_nullspace_ne_edit(
     }
 
 
+def run_word_boundary_pause_wsp(
+    config_path: str | Path,
+    base_ckpt: str | Path,
+    ctc_ckpt: str | Path,
+    phonemize: PhonemizeUtteranceUseCase,
+    val_cache_dir: str | Path,
+    dev_manifest: str | Path,
+    test_manifest: str | Path,
+    out_dir: str | Path,
+    n_dev: int = 150,
+    n_test: int = 300,
+    cov_reg: float = 0.1,
+    device: torch.device | None = None,
+) -> dict[str, Any]:
+    """
+    Surgical 96-parameter (0.0064% of model) ROME-whitened Rank-1 WSP edit inside
+    `duration_predictor.proj.weight` targeting word-boundary `<sp>` pause under-prediction.
+    Strictly selects alpha (and FT control hyperparams) on DEV, then evaluates ONCE on
+    untouched test.jsonl with 1,000-resample paired bootstrap 95% CIs.
+    """
+    dev = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    cfg = load_student_config(config_path)
+    state = load_file(str(base_ckpt))
+    ctc = load_ctc_recognizer(ctc_ckpt, dev)
+    spk = torch.zeros(1, dtype=torch.long, device=dev)
+
+    model = PAWPBilingualTTS(cfg).to(dev).eval()
+    model.load_state_dict(state, strict=True)
+
+    # 1. Extract <sp> vs non-<sp> phoneme hidden states entering duration_predictor.proj on val cache
+    w_key = "duration_predictor.proj.weight"
+    sp_id = 5
+    h_sp_list: list[torch.Tensor] = []
+    h_ph_list: list[torch.Tensor] = []
+    gt_sp_pairs: list[tuple[torch.Tensor, float]] = []
+
+    cap: dict[str, torch.Tensor] = {}
+
+    def _cap_proj(
+        _m: torch.nn.Module,
+        inp: tuple[torch.Tensor, ...],
+        _o: torch.Tensor,
+        store: dict[str, torch.Tensor] = cap,
+    ) -> None:
+        store["h"] = inp[0].detach()
+
+    hk = model.duration_predictor.proj.register_forward_hook(_cap_proj)
+    val_root = Path(val_cache_dir)
+    dur_root = val_root.parent / "durations" / val_root.name
+    with torch.inference_mode():
+        for npz_path in sorted(val_root.glob("*.npz"))[:200]:
+            d_path = dur_root / f"{npz_path.stem}.npy"
+            if not d_path.exists():
+                continue
+            d = np.load(npz_path)
+            gt_d = np.load(d_path)
+            p_ids = torch.from_numpy(d["phoneme_ids"]).long().unsqueeze(0).to(dev)
+            l_ids = torch.from_numpy(d["lang_ids"]).long().unsqueeze(0).to(dev)
+            s_ids = torch.from_numpy(d["stress_ids"]).long().unsqueeze(0).to(dev)
+            bf = torch.from_numpy(d["boundary_flags"]).float().unsqueeze(0).to(dev)
+            lm = torch.from_numpy(d["lang_masks"]).float().unsqueeze(0).to(dev)
+            model.encode_tokens(p_ids, l_ids, s_ids, bf, lm, speaker_ids=spk)
+            h = cap["h"][0].float().cpu()  # [L, 96]
+            toks = d["phoneme_ids"]
+            n = min(len(toks), len(gt_d), h.shape[0])
+            for i in range(1, n - 1):
+                if toks[i] == sp_id:
+                    h_sp_list.append(h[i])
+                    gt_sp_pairs.append((h[i], float(np.log1p(gt_d[i]))))
+                elif toks[i] >= 16:
+                    h_ph_list.append(h[i])
+    hk.remove()
+
+    H_sp = torch.stack(h_sp_list)
+    H_ph = torch.stack(h_ph_list)
+    C_ph = (H_ph.T @ H_ph) / max(H_ph.shape[0], 1)
+    k_rome = torch.linalg.solve(C_ph + cov_reg * torch.eye(C_ph.shape[0]), H_sp.mean(dim=0))
+    v_sp = k_rome / (k_rome.norm() + 1e-12)  # [96]
+
+    W0 = state[w_key].float()  # [1, 96]
+    ne_dev = load_manifest_texts(dev_manifest, "ne", limit=n_dev, seed=42)
+    en_dev = load_manifest_texts(dev_manifest, "en", limit=n_dev, seed=42)
+
+    # 2. Select alpha strictly on DEV (val.jsonl) minimizing NE+EN PER & deletions
+    base_dev_ne = evaluate_ctc_per(model, ctc, phonemize, ne_dev, "ne", dev)
+    base_dev_en = evaluate_ctc_per(model, ctc, phonemize, en_dev, "en", dev)
+    dev_sweep: list[dict[str, float | int]] = [
+        {
+            "alpha": 0.0,
+            "dev_ne_per": round(base_dev_ne.per, 5),
+            "dev_ne_del": base_dev_ne.deletions,
+            "dev_en_per": round(base_dev_en.per, 5),
+        }
+    ]
+    best_alpha = 0.0
+    best_dev_per = base_dev_ne.per + base_dev_en.per
+    for alpha in (0.05, 0.10, 0.20, 0.35, 0.50, 0.75):
+        cand = dict(state)
+        cand[w_key] = (W0 + alpha * v_sp.reshape(W0.shape)).to(state[w_key].dtype)
+        model.load_state_dict(cand, strict=True)
+        r_ne = evaluate_ctc_per(model, ctc, phonemize, ne_dev, "ne", dev)
+        r_en = evaluate_ctc_per(model, ctc, phonemize, en_dev, "en", dev)
+        dev_sweep.append(
+            {
+                "alpha": alpha,
+                "dev_ne_per": round(r_ne.per, 5),
+                "dev_ne_del": r_ne.deletions,
+                "dev_en_per": round(r_en.per, 5),
+            }
+        )
+        if r_ne.per + r_en.per < best_dev_per:
+            best_dev_per = r_ne.per + r_en.per
+            best_alpha = alpha
+
+    # If alpha=0 was lowest on total PER, still evaluate smallest positive edit (0.10) vs controls
+    chosen_alpha = best_alpha if best_alpha > 0.0 else 0.10
+    delta_best = chosen_alpha * v_sp.reshape(W0.shape)
+    wsp_state = dict(state)
+    wsp_state[w_key] = (W0 + delta_best).to(state[w_key].dtype)
+    wsp_ckpt = out_path / "wsp_pause96.safetensors"
+    save_file(wsp_state, wsp_ckpt)
+
+    # Control 1: Same-location (96 params), same-L2-norm random edit
+    rng = torch.Generator().manual_seed(42)
+    v_rand = torch.randn(v_sp.shape, generator=rng)
+    v_rand = v_rand / (v_rand.norm() + 1e-12)
+    rand_state = dict(state)
+    rand_state[w_key] = (W0 + chosen_alpha * v_rand.reshape(W0.shape)).to(state[w_key].dtype)
+    rand_ckpt = out_path / "control_random_pause96.safetensors"
+    save_file(rand_state, rand_ckpt)
+
+    # Control 2: Dev-tuned same-parameter gradient FT (ONLY those 96 weights unfrozen)
+    # Sweep (lr, steps) on DEV to give FT equal dev-tuning budget
+    X_all = torch.cat([H_sp, H_ph[: len(H_sp)]], dim=0).to(dev)
+    b0 = state["duration_predictor.proj.bias"].float().to(dev)
+    with torch.inference_mode():
+        y_ph_base = F.linear(H_ph[: len(H_sp)].to(dev), W0.to(dev), b0).squeeze(-1)
+    y_sp_gt = torch.tensor([y for _, y in gt_sp_pairs], dtype=torch.float32, device=dev)
+    y_target = torch.cat([y_sp_gt, y_ph_base], dim=0)
+
+    best_ft_score = float("inf")
+    best_ft_w = W0.clone()
+    best_ft_cfg = {"lr": 1e-2, "steps": 50}
+    for lr in (1e-3, 5e-3, 2e-2):
+        for steps in (50, 200):
+            w_param = torch.nn.Parameter(W0.clone().to(dev))
+            opt = torch.optim.Adam([w_param], lr=lr)
+            for _ in range(steps):
+                opt.zero_grad(set_to_none=True)
+                pred = F.linear(X_all, w_param, b0).squeeze(-1)
+                loss = F.mse_loss(pred, y_target)
+                torch.autograd.backward(loss)
+                opt.step()
+            cand_ft = dict(state)
+            cand_ft[w_key] = w_param.detach().cpu().to(state[w_key].dtype)
+            model.load_state_dict(cand_ft, strict=True)
+            r_ne = evaluate_ctc_per(model, ctc, phonemize, ne_dev, "ne", dev)
+            r_en = evaluate_ctc_per(model, ctc, phonemize, en_dev, "en", dev)
+            if r_ne.per + r_en.per < best_ft_score:
+                best_ft_score = r_ne.per + r_en.per
+                best_ft_w = w_param.detach().cpu().clone()
+                best_ft_cfg = {"lr": lr, "steps": steps}
+
+    ft_state = dict(state)
+    ft_state[w_key] = best_ft_w.to(state[w_key].dtype)
+    ft_ckpt = out_path / "control_sameparam_ft96.safetensors"
+    save_file(ft_state, ft_ckpt)
+
+    # 3. One-shot verification on untouched test.jsonl (300 NE + 300 EN)
+    ne_test = load_manifest_texts(test_manifest, "ne", limit=n_test, seed=101)
+    en_test = load_manifest_texts(test_manifest, "en", limit=n_test, seed=101)
+
+    def _measure_sp_and_ph_durs(m: PAWPBilingualTTS, texts: list[str]) -> tuple[float, float]:
+        sp_d, ph_d = [], []
+        with torch.inference_mode():
+            for txt in texts:
+                p_ids, l_ids, s_ids, b_flags, l_masks = _tensor_inputs_from_text(phonemize, txt)
+                _, pd = m.encode_tokens(
+                    torch.from_numpy(p_ids).to(dev),
+                    torch.from_numpy(l_ids).to(dev),
+                    torch.from_numpy(s_ids).to(dev),
+                    torch.from_numpy(b_flags).to(dev),
+                    torch.from_numpy(l_masks).to(dev),
+                    speaker_ids=spk,
+                )
+                arr = pd[0].cpu().numpy()
+                for tok, d_val in zip(p_ids[0].tolist(), arr, strict=False):
+                    if tok == sp_id:
+                        sp_d.append(float(d_val))
+                    elif tok >= 16:
+                        ph_d.append(float(d_val))
+        return float(np.mean(sp_d)), float(np.mean(ph_d))
+
+    raw: dict[str, dict[str, Any]] = {}
+    for name, ckpt in (
+        ("baseline", base_ckpt),
+        ("wsp_pause96", wsp_ckpt),
+        ("control_random_pause96", rand_ckpt),
+        ("control_sameparam_ft96", ft_ckpt),
+    ):
+        m = PAWPBilingualTTS(cfg).to(dev).eval()
+        m.load_state_dict(load_file(str(ckpt)), strict=True)
+        ne_rep = evaluate_ctc_per(m, ctc, phonemize, ne_test, "ne", dev)
+        en_rep = evaluate_ctc_per(m, ctc, phonemize, en_test, "en", dev)
+        sp_mean, ph_mean = _measure_sp_and_ph_durs(m, ne_test)
+        raw[name] = {
+            "ne_per": round(ne_rep.per, 5),
+            "ne_del": ne_rep.deletions,
+            "ne_sub": ne_rep.substitutions,
+            "en_per": round(en_rep.per, 5),
+            "en_del": en_rep.deletions,
+            "sp_mean_frames": round(sp_mean, 3),
+            "ph_mean_frames": round(ph_mean, 3),
+            "ne_utt_pers": ne_rep.utterance_pers,
+            "en_utt_pers": en_rep.utterance_pers,
+        }
+
+    def _bd(b: BootstrapResult) -> dict[str, float | int]:
+        return {
+            "mean_delta": round(b.mean_delta, 5),
+            "ci95_low": round(b.ci95_low, 5),
+            "ci95_high": round(b.ci95_high, 5),
+            "p_value_improved": round(b.p_value_improved, 4),
+        }
+
+    test_results: dict[str, Any] = {
+        "baseline": {k: v for k, v in raw["baseline"].items() if not k.endswith("_pers")},
+    }
+    for cand_name in ("wsp_pause96", "control_random_pause96", "control_sameparam_ft96"):
+        test_results[cand_name] = {
+            **{k: v for k, v in raw[cand_name].items() if not k.endswith("_pers")},
+            "boot_ne_per": _bd(
+                bootstrap_paired_ci(raw["baseline"]["ne_utt_pers"], raw[cand_name]["ne_utt_pers"])
+            ),
+            "boot_en_per": _bd(
+                bootstrap_paired_ci(raw["baseline"]["en_utt_pers"], raw[cand_name]["en_utt_pers"])
+            ),
+        }
+
+    return {
+        "edited_tensor": w_key,
+        "edited_params": int(W0.numel()),
+        "pct_of_model": round(100.0 * W0.numel() / 1_490_390, 5),
+        "chosen_alpha": chosen_alpha,
+        "best_dev_alpha": best_alpha,
+        "delta_l2_norm": float(delta_best.norm().item()),
+        "dev_sweep": dev_sweep,
+        "ft_best_dev_cfg": best_ft_cfg,
+        "untouched_test_300_300": test_results,
+    }
+
+
 def verify_wsp_on_untouched_test(
     config_path: str | Path,
     base_ckpt: str | Path,

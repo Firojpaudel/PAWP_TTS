@@ -426,6 +426,34 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
 
 ---
 
+## EXP-014 & EXP-015a: Clean `data/cache/v3` Rebuild, `ctc_aligner_v3.pt`, and `PAWP-1.5M` v3 Fine-Tune
+
+- **Date:** 2026-11-22 · **Status:** Completed & Logged (`EXP-015b/c` running)
+- **Step 2 (`EXP-014`):** Rebuilt `data/cache/v3` (`136,807` utterances, `0` errors) using the current frontend + 105k lexicon, retrained `artifacts/checkpoints/ctc_aligner_v3.pt` (`6,000` steps, final `ctc = 0.6141` vs. `~1.0` on `v2`), and extracted forced-alignment durations (`dur_one_frac`: `train 0.0594`, `train_extra 0.0393`, `train_ft 0.0296`, `val 0.0556`; median `50–60 ms`). Sanity check on 300 NE test sentences with `ctc_aligner_v3.pt`: `व`-word `/b/ -> /w/` confusion dropped from `65/118 (55.1%)` to **`0/118 (0.0%)`** (`ब`-words: `3/240 = 1.2%`).
+- **Step 3a (`EXP-015a`):** Fine-tuned `PAWP-1.5M` from `exp012_polish/train_state.pt` on `data/cache/v3` (`10k` steps, `train_ft + 10k replay`, `lr: 3e-4`).
+  - Held-out ASR (`n=30/30/9`, one recognizer): **EN `4.02% / 1.50%`**, **NE `12.35% / 1.75%`** (new lowest NE CER), **Code-Mix `12.32% / 5.32%`**; internal 77-pair smoke test `77/77`.
+  - Clean `make pawp-inspect` (`ctc_aligner_v3.pt`, `val.jsonl`, `150` NE + `150` EN, `10,488` NE phonemes): **DEV NE PER dropped `7.06% -> 3.96%`** (`S=170, D=203, I=42`), **DEV EN PER `5.29% -> 4.33%`**. `b -> w` vanished from top 12; largest single substitution was `ɳ -> n̪` (`7 / 10,488 = 0.07%`), while deletions (`D = 203`) dominated.
+
+---
+
+## EXP-016: Surgical 96-Parameter (`0.0064%`) Word-Boundary Pause WSP (`duration_predictor.proj.weight`)
+
+- **Date:** 2026-11-22 · **Status:** Completed & Logged (Selective Pause Mechanism Confirmed; Overall PER Did Not Beat Random Control)
+- **Inspection (`data/cache/v3/val`, `200` utterances):** Word-boundary `<sp>` (`n=2,956`) was systematically under-predicted (`6.16` frames vs. GT `10.38` frames; bias `-4.23` frames = `-42.3 ms`), while regular phonemes (`n=13,763`) had near-zero bias (`6.08` vs. `6.60`, `-0.52` frames). `<sp>` vs. phonemes was `90.77%` linearly separable at the 96-dim input of `duration_predictor.proj.weight` (`96` params = `0.00644%` of model).
+- **Method:** Computed ROME-whitened `<sp>` direction `v_sp = (C_phonemes + 0.1*I)^{-1} mean(h_sp)`, swept `alpha` strictly on `val.jsonl` (`best_alpha = 0.5`), and compared against (1) same-location, same-L2-norm 96-param random edit and (2) dev-tuned 96-param gradient FT (`lr=1e-3, steps=50`).
+- **One-Shot Verification on Untouched `test.jsonl` (`300` NE + `300` EN, `ctc_aligner_v3.pt`, 1,000-resample paired bootstrap 95% CIs):**
+
+| Checkpoint (`96` params = `0.0064%`) | `<sp>` Mean | Phoneme Mean | NE PER (`n=300`) | NE `D` | EN PER (`n=300`) | EN `D` | NE PER 95% CI (`edit - base`) |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Baseline (`EXP-015a` v3) | `6.100f` | `6.129f` | `5.04%` | `480` | `4.02%` | `185` | — |
+| **WSP Pause-96 (`alpha=0.5`)** | **`7.101f` (`+1.00f`)** | **`6.166f` (`+0.04f`)** | `4.93%` | `461` (`-19`) | `4.13%` | `164` (`-21`) | `[-0.0034, +0.0012]` (`p=0.177`) |
+| Control 1: Matched Random-96 | `6.229f` (`+0.13f`) | `6.221f` (`+0.09f`) | `4.84%` | `456` | `3.96%` | `185` | `[-0.0039, -0.0006]` (`p=0.004`) |
+| Control 2: Same-Param FT-96 (dev-tuned) | `5.398f` (`-0.70f`) | `5.767f` (`-0.36f`) | `5.55%` | `544` | `4.54%` | `226` | `[+0.0022, +0.0082]` (`p=0.999`) |
+
+- **Honest Verdict:** The 96-parameter ROME edit achieved strong surgical selectivity (`+1.001f` on `<sp>` vs. `+0.037f` on phonemes = `27:1` ratio), reduced deletions (`-19` NE, `-21` EN), and decisively beat same-parameter gradient FT (`4.93%` vs. `5.55%` NE PER). However, on overall PER it did **not** statistically beat the matched random control (`4.93%`, `p=0.177` vs. `4.84%`, `p=0.004`), so we report the selectivity win honestly without claiming an overall PER victory.
+
+---
+
 ## AUDIT-002: Independent Review of EXP-007 – EXP-012 (Corrections)
 
 - **Date:** 2026-11-21 · **Reviewers:** independent audit agents. Findings were confirmed point by point by the experimenting agent (Gemini 4 Neon).
