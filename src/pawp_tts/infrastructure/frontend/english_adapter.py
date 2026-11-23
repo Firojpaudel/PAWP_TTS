@@ -190,12 +190,24 @@ class EnglishEspeakG2PAdapter:
         self._voice = voice
         self._overrides: dict[str, tuple[str, ...]] = {}
         self._cache: dict[str, tuple[str, ...]] = {}
+
+        target_path: Path | None = None
         if override_lexicon_path is not None:
-            path = Path(override_lexicon_path)
-            if path.exists():
-                loaded = json.loads(path.read_text(encoding="utf-8"))
-                for word, syms in loaded.items():
-                    self._overrides[str(word)] = tuple(str(s) for s in syms)
+            target_path = Path(override_lexicon_path)
+        else:
+            package_lexicon = Path(__file__).parent / "data" / "en_fast_lexicon.json"
+            repo_lexicon = (
+                Path(__file__).resolve().parents[4] / "data" / "lexicon" / "en_fast_lexicon.json"
+            )
+            if package_lexicon.exists():
+                target_path = package_lexicon
+            elif repo_lexicon.exists():
+                target_path = repo_lexicon
+
+        if target_path is not None and target_path.exists():
+            loaded = json.loads(target_path.read_text(encoding="utf-8"))
+            for word, syms in loaded.items():
+                self._overrides[str(word)] = tuple(str(s) for s in syms)
 
     def normalize(self, text: str) -> str:
         """Expand numbers, currency, percentages, and general orthographic initialisms."""

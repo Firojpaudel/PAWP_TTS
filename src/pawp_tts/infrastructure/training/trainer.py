@@ -391,24 +391,42 @@ class BilingualStudentTrainer:
             step, best_val, epoch = st["step"], st["best_val"], st["epoch"]
             print(f"resumed from step {step} (best_val={best_val:.4f})", flush=True)
         elif init_from is not None:
-            st = torch.load(init_from, map_location=dev, weights_only=False)
-            src = st["model"]
-            old = src["speaker_emb.weight"]
-            new = model.speaker_emb.weight.detach().clone()
-            n = min(old.shape[0], new.shape[0])
-            new[:n] = old[:n]
-            new[n:] = old.mean(0, keepdim=True)  # new voices start at the mean speaker
-            src = {**src, "speaker_emb.weight": new}
-            model.load_state_dict(src, strict=True)
-            if not fresh_aligner:
-                aligner.load_state_dict(st["aligner"])
-            mpd.load_state_dict(st["mpd"])
-            mrd.load_state_dict(st["mrd"])
-            print(
-                f"initialized from {init_from} (base step {st['step']}); "
-                f"speakers {old.shape[0]} -> {new.shape[0]}",
-                flush=True,
-            )
+            init_p = Path(init_from)
+            if init_p.suffix == ".safetensors":
+                from safetensors.torch import load_file
+
+                src = load_file(str(init_p))
+                old = src["speaker_emb.weight"]
+                new = model.speaker_emb.weight.detach().clone()
+                n = min(old.shape[0], new.shape[0])
+                new[:n] = old[:n]
+                new[n:] = old.mean(0, keepdim=True)
+                src["speaker_emb.weight"] = new
+                model.load_state_dict(src, strict=True)
+                print(
+                    f"initialized model from safetensors {init_from}; "
+                    f"speakers {old.shape[0]} -> {new.shape[0]}",
+                    flush=True,
+                )
+            else:
+                st = torch.load(init_from, map_location=dev, weights_only=False)
+                src = st["model"]
+                old = src["speaker_emb.weight"]
+                new = model.speaker_emb.weight.detach().clone()
+                n = min(old.shape[0], new.shape[0])
+                new[:n] = old[:n]
+                new[n:] = old.mean(0, keepdim=True)  # new voices start at the mean speaker
+                src = {**src, "speaker_emb.weight": new}
+                model.load_state_dict(src, strict=True)
+                if not fresh_aligner:
+                    aligner.load_state_dict(st["aligner"])
+                mpd.load_state_dict(st["mpd"])
+                mrd.load_state_dict(st["mrd"])
+                print(
+                    f"initialized from {init_from} (base step {st['step']}); "
+                    f"speakers {old.shape[0]} -> {new.shape[0]}",
+                    flush=True,
+                )
 
         use_bf16 = dev.type == "cuda" and torch.cuda.is_bf16_supported()
         log_fh = open(log_path, "a", encoding="utf-8") if log_path else None  # noqa: SIM115

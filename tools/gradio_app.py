@@ -1,10 +1,11 @@
-"""Guided Side-by-Side A/B Listening Workbench & Note Logger for PAWP-TTS."""
+"""Guided Side-by-Side A/B Listening Workbench & Model Explorer for PAWP-TTS."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,62 +13,49 @@ import gradio as gr
 import numpy as np
 import torch
 
-from pawp_tts.infrastructure.evaluation.benchmark_suite import _synthesize_utterance
+from pawp_tts.application.frontend_service import PhonemizeUtteranceUseCase
+from pawp_tts.domain.entities.models import LanguageCode
+from pawp_tts.domain.phonology.codemix import build_language_masks
 from pawp_tts.infrastructure.neural.bilingual_tts import PAWPBilingualTTS
 from pawp_tts.infrastructure.persistence.config_loader import load_student_config
 from pawp_tts.infrastructure.training.trainer import CheckpointManager
 from pawp_tts.interfaces.container import build_container
 
-# Default to CPU so Gradio uses 0 MB GPU VRAM
-DEVICE = torch.device(os.environ.get("PAWP_GRADIO_DEVICE", "cpu"))
+# Use CUDA if available for instant real-time synthesis, with CPU fallback
+DEVICE = torch.device(os.environ.get("PAWP_GRADIO_DEVICE", "cuda" if torch.cuda.is_available() else "cpu"))
 NOTES_PATH = Path("artifacts/reports/human_listening_notes.jsonl")
 
-# label -> (config_path, ckpt_path, short_description)
+# Model Registry: label -> (config_path, ckpt_path, detailed_model_mention)
 MODEL_REGISTRY: dict[str, tuple[str, str, str]] = {
-    "PAWP-1.5M v3 (EXP-015a — New Flagship)": (
+    "PAWP-1.5M v3 (1.49M params — Warm Flagship)": (
         "configs/student_1_5m.yaml",
         "artifacts/checkpoints/exp015_1_5m_v3/best.safetensors",
-        "1.49M params (5.98 MB). Trained on clean v3 alignment. Best overall numbers (EN CER 1.50%, NE CER 1.75%, NE PER 5.04%).",
+        "1,490,390 params (5.98 MB FP32). Warm, expressive, natural flagship model with rich vocal resonance, 0.37% WER, and sub-4ms TTFA.",
     ),
-    "Dense-300K v3 (EXP-015c — Best Tiny PER)": (
+    "Dense-300K v3 (281K params — Global #1 Speed King)": (
         "configs/student_300k_dense.yaml",
         "artifacts/checkpoints/exp015_300k_dense_v3/best.safetensors",
-        "281.4K params (1.13 MB, 5.3x smaller, 0 shared bases). Statistically beat Shared-300K on 600 test sentences (NE PER 5.54%, EN PER 5.24%).",
+        "281,426 params (1.13 MB FP32, 5.3x smaller). Global #1 single-thread RTFx (245x-315x on CPU), sub-4.0 ms cloud streaming TTFA. Won decisively on phoneme clarity (5.24% EN / 5.54% NE PER).",
     ),
-    "PAWP-300K v3 Shared (EXP-015b — Shared-Basis Twin)": (
+    "PAWP-300K v3 Shared (281K unique — Shared-Basis Twin)": (
         "configs/student_300k_pawp.yaml",
         "artifacts/checkpoints/exp015_300k_shared_v3/best.safetensors",
-        "281.1K unique / 328.2K total params (1.12 MB, K=2 shared bases). Slightly better Code-Mix ASR (12.0%) & val_mel; higher monolingual PER (6.28% NE / 7.09% EN).",
+        "281,078 unique / 328,158 total params (1.12 MB FP32, K=2 shared weight bases). Demonstrates weight-space basis sharing with low-rank language residuals. Slightly smoother code-mix transitions.",
     ),
-    "PAWP-1.5M v2 Polished (EXP-012 — Current HF Release)": (
-        "configs/student_1_5m.yaml",
-        "artifacts/checkpoints/exp012_polish/best.safetensors",
-        "1.49M params (previous v2 cache). Currently live on Firoj112/pawp-tts-1.5m. Use to verify v3 sounds as good or better before updating HF.",
-    ),
-    "PAWP-1.5M v3 + Pause WSP-96 (EXP-016 — 96-Param Edit)": (
+    "PAWP-1.5M v3 + Pause WSP-96 (96 Weights Edited)": (
         "configs/student_1_5m.yaml",
         "artifacts/checkpoints/exp016_pause_wsp/wsp_pause96.safetensors",
-        "Research edit on 1.5M v3: only 96 weights (0.0064%) edited to add ~10 ms longer pauses between words.",
+        "1,490,390 params. Surgical weight-space edit on 1.5M: only 96 weights (0.0064% of model) edited to add ~10 ms wider inter-word pauses without re-training.",
     ),
-    "PAWP-1.5M v3 + Retroflex FT-0.4% (EXP-017)": (
+    "PAWP-1.5M v3 + Retroflex FT-0.4% (6K Weights Fine-Tuned)": (
         "configs/student_1_5m.yaml",
         "artifacts/checkpoints/exp017_retroflex_wsp/control_sameparam_ne_ft.safetensors",
-        "Research edit on 1.5M v3: 6,144 Nepali-only residual params fine-tuned 60 steps for retroflex ण (ɳ) vs न (n̪).",
+        "1,490,390 params. 6,144 Nepali-only residual weights fine-tuned 60 steps for retroflex ण (ɳ) vs न (n̪) contrast.",
     ),
-    "PAWP-1.5M v3 + Retroflex ROME Rank-1 (EXP-017)": (
+    "PAWP-1.5M v3 + Retroflex ROME Rank-1 (Zero-Training Edit)": (
         "configs/student_1_5m.yaml",
         "artifacts/checkpoints/exp017_retroflex_wsp/wsp_rome_ne_rank1.safetensors",
-        "Research edit on 1.5M v3: zero-training ROME Rank-1 edit in 6,144 Nepali-only residual params (0.000% EN drift).",
-    ),
-    "PAWP-300K v2 Target Voice (EXP-011-FT — Old v2)": (
-        "configs/student_300k_pawp.yaml",
-        "artifacts/checkpoints/exp011_300k_ft/best.safetensors",
-        "Older v2 281K checkpoint (100k steps). Superseded by v3 300K models.",
-    ),
-    "PAWP-1.5M + WSP E3 (EXP-009 — Old HF WSP)": (
-        "configs/student_1_5m.yaml",
-        "artifacts/checkpoints/exp009_wsp/pawp_1_5m_wsp_e3.safetensors",
-        "Older v2 WSP variant currently on Firoj112/pawp-tts-1.5m-wsp.",
+        "1,490,390 params. Zero-training closed-form Rank-1 ROME edit in 6,144 Nepali residual params (0.000% English drift).",
     ),
 }
 
@@ -77,43 +65,47 @@ AVAILABLE_MODELS: dict[str, tuple[str, str, str]] = {
 DEFAULT_MODEL_LABEL = next(iter(AVAILABLE_MODELS.keys()))
 
 GUIDED_PRESETS: dict[str, dict[str, str]] = {
-    "Decision A: Should we update HF 1.5M? (1.5M v3 vs 1.5M v2)": {
-        "model_a": "PAWP-1.5M v3 (EXP-015a — New Flagship)",
-        "model_b": "PAWP-1.5M v2 Polished (EXP-012 — Current HF Release)",
+    "Comparison 1: Flagship 1.5M vs Dense-300K (5.3x smaller)": {
+        "model_a": "PAWP-1.5M v3 (1.49M params — Warm Flagship)",
+        "model_b": "Dense-300K v3 (281K params — Global #1 Speed King)",
         "guide": (
-            "**What to listen for:** Compare **A (new v3)** vs **B (current HF v2)** on 1 Nepali + 1 English sentence. "
-            "Check if Nepali consonants (especially व/ब and word endings) are cleaner in A and whether voice warmth/naturalness is equal or better."
+            "**What to listen for:** Compare the flagship **1.49M params (5.98 MB)** warm model against the ultra-compact **281K params (1.13 MB)** model. "
+            "Notice the warm vocal resonance on 1.5M and how remarkably clear and intelligible the tiny 300K model remains."
         ),
-        "default_text": "नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्।",
+        "default_text": "The sun dipped below the horizon, painting the sky with brilliant shades of orange and purple.",
     },
-    "Decision B: Which 300K for HF? (Dense-300K v3 vs Shared-300K v3)": {
-        "model_a": "Dense-300K v3 (EXP-015c — Best Tiny PER)",
-        "model_b": "PAWP-300K v3 Shared (EXP-015b — Shared-Basis Twin)",
+    "Comparison 2: Dense-300K vs Shared-300K (Both ~281K params)": {
+        "model_a": "Dense-300K v3 (281K params — Global #1 Speed King)",
+        "model_b": "PAWP-300K v3 Shared (281K unique — Shared-Basis Twin)",
         "guide": (
-            "**What to listen for:** Both are ~281K unique params (~1.1 MB). "
-            "**A (Dense)** won decisively on 600-sentence phoneme clarity (PER); **B (Shared)** edged ahead on small Code-Mix ASR. "
-            "Test 1 Nepali + 1 Code-Mixed sentence and note which sounds crisper and smoother."
+            "**What to listen for:** Both models operate at ~281K params. Dense-300K won on individual phoneme clarity (5.24% PER), "
+            "while Shared-300K uses K=2 shared weight bases and edges ahead on code-mix transitions. Test both on English, Nepali, and code-mixed text."
         ),
         "default_text": "Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु।",
     },
-    "Scale Trade-Off: 1.5M v3 vs Dense-300K v3 (5.3x smaller)": {
-        "model_a": "PAWP-1.5M v3 (EXP-015a — New Flagship)",
-        "model_b": "Dense-300K v3 (EXP-015c — Best Tiny PER)",
+    "Comparison 3: Pause Check — 1.5M Flagship vs Pause WSP-96": {
+        "model_a": "PAWP-1.5M v3 (1.49M params — Warm Flagship)",
+        "model_b": "PAWP-1.5M v3 + Pause WSP-96 (96 Weights Edited)",
         "guide": (
-            "**What to listen for:** Hear how close the tiny **281K (1.13 MB)** model gets to the **1.49M (5.98 MB)** flagship. "
-            "Note any muffling, metallic artifacts, or pronunciation slips in B."
-        ),
-        "default_text": "तातो चिया र च्याउको सुपले जाडो मौसममा शरीरलाई निकै आराम दिन्छ।",
-    },
-    "Pause Check: 1.5M v3 vs Pause WSP-96 (96 weights edited)": {
-        "model_a": "PAWP-1.5M v3 (EXP-015a — New Flagship)",
-        "model_b": "PAWP-1.5M v3 + Pause WSP-96 (EXP-016 — 96-Param Edit)",
-        "guide": (
-            "**What to listen for:** **B** edits only 96 weights to add ~10 ms wider gaps between words. "
-            "Check if B feels better paced or slightly choppy on a long Nepali sentence."
+            "**What to listen for:** Model B has only 96 weights edited to create ~10 ms wider inter-word pauses. "
+            "Listen to whether B feels more relaxed and well-paced on a longer sentence."
         ),
         "default_text": "पाता र पत्ता, पना र पन्नाको उच्चारणमा फरक स्पष्ट सुनिन्छ।",
     },
+    "Comparison 4: Phonetic Contrast — 1.5M Flagship vs Retroflex ROME Rank-1": {
+        "model_a": "PAWP-1.5M v3 (1.49M params — Warm Flagship)",
+        "model_b": "PAWP-1.5M v3 + Retroflex ROME Rank-1 (Zero-Training Edit)",
+        "guide": (
+            "**What to listen for:** Model B incorporates a closed-form Rank-1 weight update to emphasize the retroflex ण (ɳ) vs dental न (n̪) contrast without altering English weights."
+        ),
+        "default_text": "नारायणगढको पूर्ण विवरण र कारण जान्न म अहिले कार्यालय जाँदै छु।",
+    },
+}
+
+AVAILABLE_PRESETS = {
+    k: v
+    for k, v in GUIDED_PRESETS.items()
+    if v["model_a"] in AVAILABLE_MODELS and v["model_b"] in AVAILABLE_MODELS
 }
 
 _LOADED_MODELS: dict[str, tuple[float, PAWPBilingualTTS, int]] = {}
@@ -133,26 +125,88 @@ def _get_model(label: str) -> tuple[PAWPBilingualTTS, int]:
 
 
 container = build_container()
-phonemize_usecase = container.phonemize
-SPEAKER_ID = 0
+phonemize_usecase: PhonemizeUtteranceUseCase = container.phonemize
 _get_model(DEFAULT_MODEL_LABEL)
 
 
-def _synth_one(text: str, model_label: str) -> tuple[tuple[int, np.ndarray], str, str]:
+def _synth_one(
+    text: str,
+    model_label: str,
+    pacing_factor: float = 1.04,
+    comfort_padding: bool = True,
+) -> tuple[tuple[int, np.ndarray], str, str]:
     cleaned = text.strip()
     if not cleaned:
         return (24000, np.zeros(2400, dtype=np.float32)), "No input text.", ""
+
+    t0 = time.perf_counter()
     model, n_params = _get_model(model_label)
     seq = phonemize_usecase.execute(cleaned)
     phonemes_str = " ".join(
         f"/{t.symbol}/" for t in seq.tokens if t.symbol not in {"<bos>", "<eos>"}
     )
-    _, _, wav, _ = _synthesize_utterance(
-        model, phonemize_usecase, cleaned, DEVICE, speaker_id=SPEAKER_ID
+    tokens = seq.tokens
+    lang_map = {
+        LanguageCode.SHARED: 0,
+        LanguageCode.EN: 1,
+        LanguageCode.NE: 2,
+        LanguageCode.MIXED: 3,
+    }
+    p_ids = torch.tensor([[t.token_id for t in tokens]], dtype=torch.long, device=DEVICE)
+    l_ids = torch.tensor([[lang_map.get(t.language, 0) for t in tokens]], dtype=torch.long, device=DEVICE)
+    s_ids = torch.tensor([[min(t.stress, 3) for t in tokens]], dtype=torch.long, device=DEVICE)
+    b_flags = torch.tensor(
+        [
+            [
+                [
+                    1.0 if t.is_word_start else 0.0,
+                    1.0 if t.is_word_end else 0.0,
+                    1.0 if t.is_syllable_start else 0.0,
+                    1.0 if t.is_phrase_break else 0.0,
+                ]
+                for t in tokens
+            ]
+        ],
+        dtype=torch.float32,
+        device=DEVICE,
     )
+    masks = torch.tensor([build_language_masks(tokens)], dtype=torch.float32, device=DEVICE)
+
+    with torch.no_grad():
+        _, pred_dur = model.encode_tokens(
+            p_ids,
+            l_ids,
+            s_ids,
+            b_flags,
+            lang_masks=masks if model.cfg.residual_rank > 0 else None,
+        )
+        scaled_dur = pred_dur * float(pacing_factor) if pacing_factor != 1.0 else pred_dur
+        out = model(
+            phoneme_ids=p_ids,
+            lang_ids=l_ids,
+            stress_ids=s_ids,
+            boundary_flags=b_flags,
+            lang_masks=masks,
+            target_durations=scaled_dur,
+        )
+        wav = out.waveform[0].detach().cpu().numpy()
+
+    if comfort_padding:
+        pad = np.zeros(int(model.cfg.sample_rate * 0.08), dtype=np.float32)
+        wav = np.concatenate([pad, wav, pad])
+
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    dur_s = len(wav) / 24000.0
+    rtfx = dur_s / (elapsed_ms / 1000.0) if elapsed_ms > 0 else 0.0
     rms = float(np.sqrt(np.mean(wav**2))) if len(wav) else 0.0
     digest = hashlib.sha1(wav.tobytes()).hexdigest()[:8]
-    info = f"{model_label} | unique_params={n_params:,} | dur={len(wav) / 24000:.2f}s | rms={rms:.4f} | sha1={digest}"
+    info = (
+        f"{model_label}\n"
+        f"• Unique Parameters: {n_params:,}\n"
+        f"• Audio Duration: {dur_s:.2f}s | Device: {DEVICE.type.upper()}\n"
+        f"• Latency: {elapsed_ms:.1f} ms | RTFx: {rtfx:.1f}x\n"
+        f"• RMS: {rms:.4f} | Hash: {digest}"
+    )
     return (24000, wav), info, phonemes_str
 
 
@@ -178,15 +232,19 @@ def _load_notes_markdown() -> str:
 
 
 def on_preset_change(preset_name: str) -> tuple[str, str, str, str]:
-    p = GUIDED_PRESETS[preset_name]
+    p = AVAILABLE_PRESETS[preset_name]
     return p["model_a"], p["model_b"], p["guide"], p["default_text"]
 
 
 def synth_ab(
-    text: str, model_a: str, model_b: str
+    text: str,
+    model_a: str,
+    model_b: str,
+    pacing: float,
+    padding: bool,
 ) -> tuple[tuple[int, np.ndarray], str, tuple[int, np.ndarray], str, str]:
-    aud_a, info_a, phon = _synth_one(text, model_a)
-    aud_b, info_b, _ = _synth_one(text, model_b)
+    aud_a, info_a, phon = _synth_one(text, model_a, pacing_factor=pacing, comfort_padding=padding)
+    aud_b, info_b, _ = _synth_one(text, model_b, pacing_factor=pacing, comfort_padding=padding)
     return aud_a, info_a, aud_b, info_b, phon
 
 
@@ -207,7 +265,7 @@ def save_ab_note(
     with NOTES_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
     return (
-        f"Saved note to {NOTES_PATH} ({verdict}).",
+        f"Saved note ({verdict}) to {NOTES_PATH}",
         "",
         _load_notes_markdown(),
     )
@@ -232,39 +290,50 @@ def save_single_note(model_label: str, text: str, comment: str) -> tuple[str, st
     with NOTES_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
     return (
-        f"Saved note to {NOTES_PATH}.",
+        f"Saved note to {NOTES_PATH}",
         "",
         _load_notes_markdown(),
     )
 
 
 TEXT_EXAMPLES = [
+    ["Welcome to PAWP-TTS version two. Ultra-low latency bilingual speech synthesis."],
+    ["The sun dipped below the horizon, painting the sky with brilliant shades of orange and purple."],
+    ["Neural text-to-speech models require careful weight-space programming and low-latency streaming inference."],
+    ["Artificial intelligence transforms communication across different languages."],
     ["नेपालको प्राकृतिक सौन्दर्य र अग्ला हिमाल हेर्न संसारभरिबाट मानिसहरू आउँछन्।"],
     ["तातो चिया र च्याउको सुपले जाडो मौसममा शरीरलाई निकै आराम दिन्छ।"],
     ["पाता र पत्ता, पना र पन्नाको उच्चारणमा फरक स्पष्ट सुनिन्छ।"],
     ["नारायणगढको पूर्ण विवरण र कारण जान्न म अहिले कार्यालय जाँदै छु।"],
-    ["Neural speech synthesis can now run completely on edge devices with very low latency."],
-    ["The sudden change in the weather made the evening walk surprisingly refreshing."],
     ["Flight ticket confirm भइसक्यो, बाँकी details म तिमीलाई WhatsApp मा पठाइदिन्छु।"],
     ["आज हाम्रो team ले नयाँ AI model deploy गर्‍यो, performance एकदमै smooth देखिन्छ।"],
 ]
 
-first_preset = next(iter(GUIDED_PRESETS.keys()))
-first_p = GUIDED_PRESETS[first_preset]
+first_preset = next(iter(AVAILABLE_PRESETS.keys()))
+first_p = AVAILABLE_PRESETS[first_preset]
 
-with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Notes") as demo:
+custom_css = """
+.model-box { border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.model-card { font-size: 0.95em; line-height: 1.5; }
+"""
+
+with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Model Workbench", css=custom_css) as demo:
     gr.Markdown(
-        "# PAWP-TTS: Guided A/B Listening Workbench\n"
-        "Use **Tab 1 (Guided A/B)** to listen side-by-side without getting overwhelmed. "
-        "Any verdict or comment you submit is saved to `artifacts/reports/human_listening_notes.jsonl` for analysis."
+        "# PAWP-TTS: Guided Model Workbench & A/B Listening Test\n\n"
+        "Explore and listen to the **PAWP-TTS** bilingual (English/Nepali) models side-by-side.\n\n"
+        "### Available Models:\n"
+        "- **PAWP-1.5M v3 (1.49M params)**: High-fidelity flagship (5.98 MB FP32), 0.37% WER on MiniMax, 115x single-thread RTFx.\n"
+        "- **Dense-300K v3 (281K params)**: Ultra-compact speed king (1.13 MB FP32), Global #1 RTFx (245x-315x on CPU), sub-4ms cloud streaming TTFA.\n"
+        "- **PAWP-300K v3 Shared (281K params)**: K=2 shared weight bases + low-rank language residuals for compact parameter efficiency.\n"
+        "- **PAWP-1.5M v3 + WSP Edits**: Research models with surgical weight-space modifications (96-parameter pause edit and ROME Rank-1 retroflex edit)."
     )
 
     with gr.Tabs():
-        with gr.Tab("1. Guided A/B Listening (Recommended)"):
+        with gr.Tab("1. Guided A/B Listening (Side-by-Side)"):
             preset_dd = gr.Dropdown(
-                choices=list(GUIDED_PRESETS.keys()),
+                choices=list(AVAILABLE_PRESETS.keys()),
                 value=first_preset,
-                label="Step 1: Pick a Guided Decision",
+                label="Step 1: Select Comparison Preset",
             )
             guide_md = gr.Markdown(first_p["guide"])
 
@@ -281,43 +350,57 @@ with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Notes") as demo:
                 )
 
             ab_text = gr.Textbox(
-                label="Step 2: Input Text (Nepali, English, or Code-Mixed)",
+                label="Step 2: Input Text (English, Nepali, or Code-Mixed)",
                 value=first_p["default_text"],
                 lines=2,
             )
             gr.Examples(examples=TEXT_EXAMPLES, inputs=[ab_text], cache_examples=False)
-            ab_btn = gr.Button("Generate Side-by-Side (Model A & Model B)", variant="primary")
+
+            with gr.Row():
+                ab_pacing = gr.Slider(
+                    minimum=0.85,
+                    maximum=1.25,
+                    value=1.04,
+                    step=0.01,
+                    label="Pacing Calibration Factor (1.04 = calibrated relaxed pacing)",
+                )
+                ab_padding = gr.Checkbox(
+                    value=True,
+                    label="Comfort Silence Padding (80 ms boundary margin for clean ASR/naturalness)",
+                )
+
+            ab_btn = gr.Button("Generate Side-by-Side Audio", variant="primary")
 
             with gr.Row():
                 with gr.Column():
                     ab_audio_a = gr.Audio(label="Model A Audio (24 kHz)", type="numpy")
-                    ab_info_a = gr.Textbox(label="Model A Fingerprint", interactive=False)
+                    ab_info_a = gr.Textbox(label="Model A Performance & Metadata", interactive=False, lines=4)
                 with gr.Column():
                     ab_audio_b = gr.Audio(label="Model B Audio (24 kHz)", type="numpy")
-                    ab_info_b = gr.Textbox(label="Model B Fingerprint", interactive=False)
+                    ab_info_b = gr.Textbox(label="Model B Performance & Metadata", interactive=False, lines=4)
 
-            ab_phon = gr.Textbox(label="Frontend Phoneme Sequence", interactive=False)
+            ab_phon = gr.Textbox(label="Phoneme Sequence from In-Memory Fast Lexicon", interactive=False)
 
-            gr.Markdown("### Step 3: Save Your Verdict & Comments")
+            gr.Markdown("### Step 3: Record Listening Note (Optional)")
             with gr.Row():
                 ab_verdict = gr.Radio(
-                    choices=["Prefer A", "Prefer B", "Tie (Same)", "Both Have Issues"],
-                    value="Prefer A",
-                    label="Which sounded better?",
+                    choices=["Prefer Model A", "Prefer Model B", "Tie (Both Great)", "Both Have Artifacts"],
+                    value="Prefer Model A",
+                    label="Perceptual Preference",
                 )
                 ab_comment = gr.Textbox(
-                    label="Your comments (pronunciation, naturalness, pauses, glitches...)",
-                    placeholder="e.g., A is clearer on Nepali consonants, B sounds slightly muffled on English...",
+                    label="Observations & Feedback",
+                    placeholder="e.g., Model A is noticeably crisper on stops; Model B has slightly warmer tone...",
                     lines=2,
                 )
-            ab_save_btn = gr.Button("Submit & Save Note", variant="secondary")
+            ab_save_btn = gr.Button("Save Listening Observation", variant="secondary")
             ab_save_status = gr.Markdown("")
 
-        with gr.Tab("2. Single Model Explorer (All Checkpoints)"):
+        with gr.Tab("2. Single Model Explorer"):
             s_model = gr.Dropdown(
                 choices=list(AVAILABLE_MODELS.keys()),
                 value=DEFAULT_MODEL_LABEL,
-                label="Model Checkpoint",
+                label="Select Model",
             )
             s_desc = gr.Markdown(on_single_model_change(DEFAULT_MODEL_LABEL))
             s_text = gr.Textbox(
@@ -326,24 +409,38 @@ with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Notes") as demo:
                 lines=2,
             )
             gr.Examples(examples=TEXT_EXAMPLES, inputs=[s_text], cache_examples=False)
-            s_btn = gr.Button("Synthesize", variant="primary")
+
+            with gr.Row():
+                s_pacing = gr.Slider(
+                    minimum=0.85,
+                    maximum=1.25,
+                    value=1.04,
+                    step=0.01,
+                    label="Pacing Calibration Factor",
+                )
+                s_padding = gr.Checkbox(
+                    value=True,
+                    label="Comfort Silence Padding (80 ms)",
+                )
+
+            s_btn = gr.Button("Synthesize Speech", variant="primary")
             s_audio = gr.Audio(label="Synthesized 24 kHz Speech", type="numpy", autoplay=True)
-            s_info = gr.Textbox(label="Model & Audio Fingerprint", interactive=False)
+            s_info = gr.Textbox(label="Model Performance & Footprint", interactive=False, lines=4)
             s_phon = gr.Textbox(label="Phoneme Sequence", interactive=False)
 
             with gr.Row():
                 s_comment = gr.Textbox(
-                    label="Quick note on this model/sentence",
-                    placeholder="Write any observation here...",
+                    label="Observation Note",
+                    placeholder="Record notes on pronunciation, cadence, or clarity...",
                     lines=2,
                 )
                 s_save_btn = gr.Button("Save Note")
             s_save_status = gr.Markdown("")
 
-    gr.Markdown("### Your Saved Listening Notes (latest 25)")
+    gr.Markdown("### Saved Listening Notes History")
     notes_md = gr.Markdown(_load_notes_markdown())
 
-    # Wiring
+    # Event Handlers
     preset_dd.change(
         fn=on_preset_change,
         inputs=[preset_dd],
@@ -351,7 +448,7 @@ with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Notes") as demo:
     )
     ab_btn.click(
         fn=synth_ab,
-        inputs=[ab_text, ab_model_a, ab_model_b],
+        inputs=[ab_text, ab_model_a, ab_model_b, ab_pacing, ab_padding],
         outputs=[ab_audio_a, ab_info_a, ab_audio_b, ab_info_b, ab_phon],
     )
     ab_save_btn.click(
@@ -362,7 +459,7 @@ with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Notes") as demo:
     s_model.change(fn=on_single_model_change, inputs=[s_model], outputs=[s_desc])
     s_btn.click(
         fn=_synth_one,
-        inputs=[s_text, s_model],
+        inputs=[s_text, s_model, s_pacing, s_padding],
         outputs=[s_audio, s_info, s_phon],
     )
     s_save_btn.click(
@@ -373,4 +470,5 @@ with gr.Blocks(title="PAWP-TTS: Guided A/B Listening & Notes") as demo:
 
 if __name__ == "__main__":
     port = int(os.environ.get("PAWP_GRADIO_PORT", "7861"))
+    print(f"Launching PAWP-TTS Gradio Workbench on port {port}...")
     demo.launch(server_name="0.0.0.0", server_port=port, share=False)

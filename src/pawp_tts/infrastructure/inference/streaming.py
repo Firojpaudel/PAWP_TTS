@@ -234,11 +234,12 @@ class OnnxStreamingRunner:
         lang_ids: np.ndarray,
         stress_ids: np.ndarray,
         boundary_flags: np.ndarray,
-        first_chunk_frames: int = 6,
+        first_chunk_frames: int = 3,
         chunk_frames: int = 16,
         left_halo: int = 24,
         right_halo: int = 11,
         target_durations: np.ndarray | None = None,
+        pacing_factor: float = 1.0,
     ) -> Iterator[np.ndarray]:
         """Yield 24 kHz float32 PCM chunks incrementally with exact halo context."""
         enc_h, pred_dur = self._enc_sess.run(
@@ -250,6 +251,8 @@ class OnnxStreamingRunner:
                 "boundary_flags": boundary_flags.astype(np.float32),
             },
         )
+        if pacing_factor != 1.0:
+            pred_dur = pred_dur * float(pacing_factor)
         used_dur = target_durations if target_durations is not None else pred_dur
         frame_h = _expand_frames_numpy(enc_h, used_dur, self._prog_w, self._prog_b)
         total_frames = frame_h.shape[1]
@@ -294,11 +297,12 @@ class PyTorchStreamingRunner:
         stress_ids: torch.Tensor,
         boundary_flags: torch.Tensor,
         lang_masks: torch.Tensor,
-        first_chunk_frames: int = 6,
+        first_chunk_frames: int = 3,
         chunk_frames: int = 16,
         left_halo: int = 24,
         right_halo: int = 11,
         target_durations: torch.Tensor | None = None,
+        pacing_factor: float = 1.0,
     ) -> Iterator[np.ndarray]:
         """Yield 24 kHz float32 PCM chunks incrementally on CPU or CUDA."""
         p_ids = phoneme_ids.to(self._device)
@@ -314,6 +318,8 @@ class PyTorchStreamingRunner:
             boundary_flags=b_flags,
             lang_masks=l_masks if self._model.cfg.residual_rank > 0 else None,
         )
+        if pacing_factor != 1.0:
+            pred_dur = pred_dur * float(pacing_factor)
         used_dur = target_durations.to(self._device) if target_durations is not None else pred_dur
         frame_h, frame_masks, _, _ = self._model.prepare_frame_hidden(enc_h, l_masks, used_dur)
         total_frames = frame_h.shape[1]
