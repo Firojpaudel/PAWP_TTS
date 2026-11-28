@@ -14,7 +14,8 @@
 
 <p>
   <img src="https://img.shields.io/badge/Params-1.49M_(5.98_MB)_%7C_281K_(1.12_MB)-1E293B?style=flat-square" alt="Parameters">
-  <img src="https://img.shields.io/badge/EN_%2F_NE_CER-1.50%25_%2F_1.75%25_(v3)-16A34A?style=flat-square" alt="CER">
+  <img src="https://img.shields.io/badge/EN_PER_(independent)-15.1%25_(human_13.4%25)-16A34A?style=flat-square" alt="Independent PER">
+  <img src="https://img.shields.io/badge/Code--Mix_WER-18.1%25_(n%3D160)-16A34A?style=flat-square" alt="Code-mix WER">
   <img src="https://img.shields.io/badge/Browser_TTS-11_ms_first_sound_%7C_23x_RT-7C3AED?style=flat-square" alt="Browser TTS">
   <img src="https://img.shields.io/badge/ONNX_CPU_Chunk-1.11_ms-0284C7?style=flat-square" alt="ONNX Latency">
   <img src="https://img.shields.io/badge/Sample_Rate-24_kHz-475569?style=flat-square" alt="Sample Rate">
@@ -71,24 +72,43 @@ Additional `WSP-E3` samples with native inline audio players are also hosted on 
 
 ## Benchmark Results
 
-### 1. Held-Out Live ASR Evaluation (`30` EN, `30` NE, `9` Code-Mixed)
+### 1. Current Results (`v3`, independent re-scoring)
 
-Scored against an independent speech recognizer alongside the human studio ground-truth recording floor ([docs/BENCHMARKS.md](docs/BENCHMARKS.md)):
+The training-time metrics are partly circular: the PER recognizer also produced the training durations, and the primary ASR also filtered the synthetic training corpus. All current checkpoints were therefore re-scored with **two recognizers that played no part in training or data filtering**: a second mixed-script ASR, and the public [`wav2vec2-xlsr-53-espeak-cv-ft`](https://huggingface.co/facebook/wav2vec2-xlsr-53-espeak-cv-ft) phone recognizer, with both sides mapped to a shared 39-phone set. See [EXP-018/019](docs/EXPERIMENTS.md).
 
-| Model / Checkpoint | English WER / CER (`n=30`) | Nepali WER / CER (`n=30`) | Code-Mixed WER / CER (`n=9`) | Internal Contrast Smoke Test (77 pairs)* |
-| :--- | :---: | :---: | :---: | :---: |
-| Human Studio Ground-Truth Floor | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` | — |
-| `PAWP-1.5M` Base (Step 92k, [EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` | 77/77 (internal smoke test) |
-| `PAWP-1.5M` Target Voice (Step 20k, [EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` | 77/77 (internal smoke test) |
-| **`PAWP-1.5M` Polished Default (+10k, [EXP-012](docs/EXPERIMENTS.md))** | **`4.86% / 2.79%`** | **`11.41% / 2.66%`** | **`10.99% / 4.10%`** | 77/77 (internal smoke test) |
-| **`PAWP-1.5M` + WSP `E3` (zero-training, test-selected, preliminary; [EXP-009](docs/EXPERIMENTS.md))** | **`5.03% / 2.20%`** | **`9.93% / 1.97%`** | **`9.93% / 3.97%`** | 77/77 (internal smoke test) |
-| `PAWP-1.5M` + WSP `Null-64` (zero-training, test-selected, preliminary; [EXP-009](docs/EXPERIMENTS.md)) | `4.73% / 2.02%` | `10.09% / 1.93%` | `11.65% / 4.90%` | 77/77 (internal smoke test) |
+| Model | EN CER (`n=30`) | NE CER (`n=30`) | EN PER (`n=300`) | NE PER (`n=300`) | Code-Mix WER / CER (`n=160`) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| Human recordings | `0.68%` | `22.65%` | `13.44%` | `34.12%` | — |
+| **`PAWP-1.5M` v3** | `2.35%` | `19.46%` | `15.14%` | `38.10%` | `18.13% / 8.80%` |
+| `PAWP-300K` Shared (3 seeds) | `4.10 ± 0.52%` | `21.07 ± 1.93%` | `16.28 ± 1.14%` | `40.51 ± 0.42%` | `18.78% / 9.35%` |
+| `Dense-300K` (3 seeds) | `2.44 ± 1.20%` | `20.18 ± 0.78%` | **`14.83 ± 0.32%`** | **`38.69 ± 0.62%`** | `18.78% / 9.00%` |
 
-*\*Internal G2P + non-silent/mel-differs phonological smoke test across 77 minimal pairs (NOT the published NepTTS-Bench listening/ASR benchmark; see `AUDIT-001` in [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)).*
+How to read this table:
+- **No synthetic system beats the human recordings** under independent recognizers. An earlier below-human CER was an artifact of the circular recognizer.
+- **The independent recognizers are weak on Nepali** (human CER 22.65%, human PER 34.12%). Absolute Nepali numbers are coarse; compare models pairwise.
+- **At equal unique parameters (281K), dense beats shared-basis** on phone error in all 6 seed × language pairs (paired t-test p = 0.010, Wilcoxon p = 0.031) and on code-mix PER in 3/3 seeds.
+- **Code-mix set:** 160 new sentences, 4.7 language switches per sentence, no textual overlap with training data. It is released at [`data/evaluation/codemix_v1.jsonl`](data/evaluation/codemix_v1.jsonl).
+- **No listening test (MOS) has been run yet.**
+
+Reproduce with `make eval-independent` and `make eval-codemix`.
+
+<details>
+<summary>Earlier results (pre-<code>v3</code>, single training-time recognizer, small sets; superseded)</summary>
+
+| Model / Checkpoint | English WER / CER (`n=30`) | Nepali WER / CER (`n=30`) | Code-Mixed WER / CER (`n=9`) |
+| :--- | :---: | :---: | :---: |
+| Human Studio Recordings | `2.63% / 0.75%` | `11.60% / 3.82%` | `25.91% / 12.88%` |
+| `PAWP-1.5M` Base ([EXP-007](docs/EXPERIMENTS.md)) | `3.14% / 1.01%` | `12.02% / 3.12%` | `16.18% / 11.02%` |
+| `PAWP-1.5M` Target Voice ([EXP-008-FT](docs/EXPERIMENTS.md)) | `5.03% / 2.28%` | `9.93% / 1.97%` | `11.99% / 4.92%` |
+| `PAWP-1.5M` Polished ([EXP-012](docs/EXPERIMENTS.md)) | `4.86% / 2.79%` | `11.41% / 2.66%` | `10.99% / 4.10%` |
+| `PAWP-1.5M` + WSP `E3` (test-selected, preliminary; [EXP-009](docs/EXPERIMENTS.md)) | `5.03% / 2.20%` | `9.93% / 1.97%` | `9.93% / 3.97%` |
+
+This recognizer also filtered the training corpus, so these numbers overstate intelligibility relative to human speech.
+</details>
 
 ### 2. Streaming Latency & ONNX Parity
 
-Folded monolingual ONNX streaming graphs (`5.16 MB` FP32 each) match PyTorch streaming waveforms to `MAE = 0.000155–0.001389` (`cosine = 0.987–0.99998`):
+Per-chunk compute after the utterance is encoded (end-to-end streaming time-to-first-audio is not yet measured). Running the code-mixed graph (both language residuals active, not folded) adds +29% at 1.5M (1.24 ms vs 0.96 ms per 60 ms chunk) and +17–19% at 281K ([EXP-019](docs/EXPERIMENTS.md)). Folded monolingual ONNX streaming graphs (`5.16 MB` FP32 each) match PyTorch streaming waveforms to `MAE = 0.000155–0.001389` (`cosine = 0.987–0.99998`):
 
 | Backend | Hardware | Streaming TTFA (`p50 / p95 / p99`, 60 ms chunk) | Real-Time Factor (`RTFx / RTF`) |
 | :--- | :--- | :---: | :---: |
@@ -105,7 +125,7 @@ Folded monolingual ONNX streaming graphs (`5.16 MB` FP32 each) match PyTorch str
 | M1 | Clean Architecture bootstrap, unified 128-token EN/NE phoneme inventory, rule-based Nepali + code-mix G2P, 1.5M blueprint | done |
 | M2 | Bilingual manifests and leak-free splits, eSpeak English G2P, ONNX chunked streaming path, MR-STFT + MPD/MRD losses | done |
 | M3 | 105,868-word Kathmandu lexicon (300/300 lexicon self-consistency check; native gold set pending), CTC forced-alignment durations, 92k base + 20k target-voice FT + 10k phase polish | **done** ([EXP-007](docs/EXPERIMENTS.md), [EXP-008-FT](docs/EXPERIMENTS.md), [EXP-012](docs/EXPERIMENTS.md)) |
-| M4 | Agent-driven weight-space programming (`EXP-009`, Gemini 4 Neon), zero-shot compression frontier (`EXP-010`), and `PAWP-300K` (`281K` unique params, `0.28 MB` INT8) shared-basis training (`EXP-011`) | **in progress** (`EXP-011` training) |
+| M4 | Agent-driven weight-space programming (`EXP-009`, Gemini 4 Neon), zero-shot compression frontier (`EXP-010`), and `PAWP-300K` (`281K` unique params, `0.28 MB` INT8) shared-basis training (`EXP-011`) | **done** (EXP-009–017; dense beats shared-basis at 281K, weight edits gave no gain beyond controls) |
 | M5 | Trained ONNX FP32 export & parity verification, public Hugging Face model cards & audio releases | **done** ([pawp-tts-1.5m](https://huggingface.co/Firoj112/pawp-tts-1.5m), [pawp-tts-1.5m-wsp](https://huggingface.co/Firoj112/pawp-tts-1.5m-wsp)) |
 
 ---
@@ -199,7 +219,7 @@ uv run pawp synth \
 
 | Document | Purpose |
 | :--- | :--- |
-| [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) | Chronological experiment log (`EXP-001` through `EXP-012`) |
+| [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) | Chronological experiment log (`EXP-001` through `EXP-019`, plus audits) |
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | 4-metric parameter footprint, latency, and quality scorecards |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tensor-level model and PAWP specification |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
