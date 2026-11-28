@@ -510,3 +510,106 @@ Source: task logs 1945/1953/1964/1969/2109, exported by the agent. These runs we
   - a validation split for edit selection, a larger test set and bootstrap confidence intervals;
   - weight-space programming and compression implemented in `src/` with `make` targets and ledger entries;
   - licence/provenance review of public checkpoints before wider distribution.
+
+---
+
+## EXP-018: Independent Non-Circular ASR & Phoneme Recognizer Re-Scoring
+
+- **Date:** 2026-11-28 · **Status:** Completed & Logged
+- **Hypothesis:** Re-scoring all 7 `v3` checkpoints (`EXP-015a` `PAWP-1.5M v3`, `EXP-015b` `Shared-300K` seeds 42/101/202, `EXP-015c` `Dense-300K` seeds 42/101/202) plus human audio floors with two independent recognizers never used in training or filtering tests (1) whether the Dense-over-Shared ordering survives non-circular evaluation, (2) whether synthetic CER still beats the human floor, and (3) whether an independent recognizer can separate Nepali retroflex `/ɳ/` from dental `/n̪/`.
+- **Recognizers:**
+  1. **Independent ASR:** Local mixed-script ASR (`MixedScriptLocalAsrAdapter`, configured via `.env`, never used for corpus filtering). Scored on held-out `test.jsonl` (`seed=0`, `1.5-10.0s`: `n=30` EN, `n=30` NE, `n=9` Mix) and `data/evaluation/codemix_v1.jsonl` (`n=160`). Raw JSON: `artifacts/reports/exp018_independent_asr.json`.
+  2. **Independent Phoneme Recognizer:** Public `facebook/wav2vec2-xlsr-53-espeak-cv-ft` (16 kHz resampled, greedy CTC decoding, mapped symmetrically with our frontend `UNIFIED_PHONEMES` to a documented 39-phone reduced shared set in `artifacts/reports/exp018_independent_per.json`). Scored on untouched `test.jsonl` (`n=300` EN + `n=300` NE) and `codemix_v1.jsonl` (`n=160`).
+- **Reduced Shared Phone Mapping Summary:** Length (`ː`), stress (`ˈˌ`), nasalization/breathy/palatalization diacritics stripped; dental/alveolar/retroflex and plain/aspirated/breathy stops collapsed to `{p, b, t, d, k, g}`; affricates mapped to `{tʃ, dʒ, ts, dz}`; nasals mapped to `{m, n, ŋ}` (except in the unreduced retroflex recheck); rhotics `{r, ɾ, ɹ, ɽ, ɽʱ}` mapped to `r`; diphthongs split into component vowels (`aɪ -> a i`, `aʊ -> a u`, `eɪ -> e i`, `oʊ -> o u`, `ɔɪ -> ɔ i`). Full dictionary saved in `artifacts/reports/exp018_independent_per.json`.
+
+### EXP-018 Results: Independent Local Mixed-Script ASR (Held-Out `n=30/30/9`, 95% Bootstrap CIs)
+
+| Checkpoint | Seed | Old EN WER/CER | Indep EN WER / CER [95% CI] | Old NE WER/CER | Indep NE WER / CER [95% CI] | Indep Mix (`n=9`) WER / CER [95% CI] |
+|---|---:|---:|---:|---:|---:|---:|
+| Human Floor | - | 2.63 / 0.75 | 2.50 / 0.68 [0.06, 1.61] | 11.60 / 3.82 | 28.73 / 22.65 [11.92, 34.60] | 25.91 / 12.88 [7.11, 19.34] |
+| `PAWP-1.5M v3` (`EXP-015a`) | 42 | 4.02 / 1.50 | 5.47 / 2.35 [1.11, 3.91] | 12.35 / 1.75 | 25.58 / 19.46 [10.57, 29.99] | 12.32 / 5.32 [2.34, 8.41] |
+| `Shared-300K` (`EXP-015b`) | 42 | 6.88 / 2.93 | 8.56 / 4.50 [1.76, 8.55] | 19.71 / 5.93 | 31.03 / 23.13 [12.65, 34.68] | 12.02 / 5.01 [1.80, 9.20] |
+| `Shared-300K` (`EXP-015b`) | 101 | - | 8.64 / 3.51 | - | 32.35 / 19.30 | 14.60 / 7.79 |
+| `Shared-300K` (`EXP-015b`) | 202 | - | 7.19 / 4.28 | - | 29.86 / 20.76 | 16.49 / 9.32 |
+| `Dense-300K` (`EXP-015c`) | 42 | 6.15 / 2.42 | 6.42 / 3.77 [1.47, 6.72] | 20.21 / 6.59 | 34.10 / 19.88 [11.00, 30.20] | 18.09 / 9.01 [4.40, 14.30] |
+| `Dense-300K` (`EXP-015c`) | 101 | - | 3.60 / 1.45 | - | 28.94 / 19.61 | 11.49 / 5.66 |
+| `Dense-300K` (`EXP-015c`) | 202 | - | 5.65 / 2.09 | - | 29.70 / 21.07 | 15.20 / 8.40 |
+
+- **Synthetic CER vs Human Floor (Independent ASR):**
+  - **English (`n=30`):** Synthetic does **not** beat human (`PAWP-1.5M` `2.35%` vs human `0.68%`, paired diff `+1.66 pp`, 95% CI `[+0.41, +3.25]`).
+  - **Nepali (`n=30`):** `PAWP-1.5M` (`19.46%`) is numerically below human (`22.65%`), but the difference is **not statistically significant** (`diff = -3.18 pp`, 95% CI `[-7.69, +0.58]`, `p = 0.054`). The earlier "synthetic beats human" Nepali gap does not reach significance under the independent ASR.
+  - **Code-Mix (`n=9`):** `PAWP-1.5M` (`5.32%`) beats human (`12.88%`, `diff = -7.56 pp`, 95% CI `[-12.50, -3.15]`, `p < 0.001`), reflecting noisy/spontaneous human code-mix recordings vs canonical read synthesis on only 9 utterances.
+- **Shared vs Dense on Independent ASR (3 seeds):**
+  - EN WER/CER: Dense (`5.22 +/- 1.46%` / `2.44 +/- 1.20%`) beats Shared (`8.13 +/- 0.81%` / `4.10 +/- 0.52%`) on 3/3 seeds (seed 42 within-seed CER 95% CI `[-1.34, +2.98]`, `p=0.711`).
+  - NE WER/CER: Near tie (Dense `30.91 +/- 2.78%` / `20.18 +/- 0.78%` vs Shared `31.08 +/- 1.25%` / `21.07 +/- 1.93%`).
+  - Pooled 3 seeds x 2 languages (EN+NE CER): `t = 2.13, p = 0.087` (Wilcoxon `p = 0.156`).
+
+### EXP-018 Results: Independent Phoneme Recognizer (`facebook/wav2vec2-xlsr-53-espeak-cv-ft`, `n=300` EN + `n=300` NE)
+
+| Checkpoint | Seed | Old CTC EN PER | Indep XLSR EN PER [95% CI] | Old CTC NE PER | Indep XLSR NE PER [95% CI] (caveat*) | Indep XLSR CM160 PER [95% CI] |
+|---|---:|---:|---:|---:|---:|---:|
+| Human Floor (`n=300`) | - | - | 13.44% [12.84, 14.01] | - | 34.12%* [33.35, 34.94] | - |
+| `PAWP-1.5M v3` | 42 | 4.02% | 15.14% [14.56, 15.74] | 5.04% | 38.10% [37.25, 38.97] | 36.91% [35.70, 38.00] |
+| `Shared-300K` | 42 | 7.09% | 17.51% [16.82, 18.20] | 6.28% | 40.06% [39.21, 40.89] | 39.90% [38.75, 41.16] |
+| `Shared-300K` | 101 | 6.44% | 15.26% [14.67, 15.89] | 6.29% | 40.87% [40.03, 41.63] | 39.01% [37.83, 40.22] |
+| `Shared-300K` | 202 | 6.17% | 16.09% [15.46, 16.79] | 6.48% | 40.60% [39.82, 41.32] | 39.51% [38.32, 40.66] |
+| `Dense-300K` | 42 | 5.24% | 15.00% [14.43, 15.59] | 5.54% | 39.40% [38.62, 40.22] | 37.44% [36.28, 38.63] |
+| `Dense-300K` | 101 | 5.66% | 15.04% [14.48, 15.59] | 5.44% | 38.42% [37.66, 39.23] | 35.40% [34.31, 36.46] |
+| `Dense-300K` | 202 | 5.13% | 14.47% [13.88, 15.06] | 5.60% | 38.27% [37.53, 39.05] | 36.65% [35.50, 37.82] |
+
+*Caveat on XLSR-eSpeak NE PER:* Human Nepali audio scores **34.12% PER** on `facebook/wav2vec2-xlsr-53-espeak-cv-ft` because the model was not trained on Nepali phonology (systematic vowel/affricate mismatch). Absolute NE PER is therefore noisy, though relative ordering across checkpoints on identical sentences remains informative.
+
+- **Does Dense-over-Shared survive the independent phoneme recognizer?** **Yes, 6/6 seed x language comparisons:**
+  - **EN (`n=300`):** Dense `14.83 +/- 0.32%` vs Shared `16.28 +/- 1.14%`; per-seed diffs (Shared - Dense): `+2.51, +0.22, +1.62 pp`; seed 42 within-seed 95% CI `[+1.97, +3.10]`, `p < 0.001`.
+  - **NE (`n=300`):** Dense `38.69 +/- 0.62%` vs Shared `40.51 +/- 0.42%`; per-seed diffs: `+0.65, +2.46, +2.33 pp`; seed 42 within-seed 95% CI `[-0.04, +1.38]`, `p = 0.043`.
+  - **Pooled 3 seeds x 2 languages (`n=6`):** Dense beats Shared in **6/6** pairs; paired t-test `t = 4.05, p = 0.0099`, Wilcoxon signed-rank `W = 0.0, p = 0.0313`.
+  - **Code-Mix (`codemix_v1`, `n=160`):** Dense `36.49 +/- 1.03%` vs Shared `39.47 +/- 0.44%` (3/3 seeds; seed 42 95% CI `[+1.35, +3.62]`, `p < 0.001`).
+  - **Synthetic vs Human PER:** Every synthetic model sits strictly **above** the human floor on both EN (`13.44%`) and NE (`34.12%`).
+- **Retroflex-Nasal Recheck (`ण` on human `test.jsonl`):** Across 300 loaded Nepali human recordings (`51` utterances with `ण`, `61` orthographic occurrences), raw unreduced `facebook/wav2vec2-xlsr-53-espeak-cv-ft` aligned `0/61` as `ɳ`, `51/61` as `n`, and `10/61` as other/deleted. Crucially, the recognizer emitted **`0` raw `ɳ` tokens across all 300 Nepali human utterances** (vs `1,032` raw `n` tokens). Plainly: although `ɳ` is in its 392-token vocabulary, `facebook/wav2vec2-xlsr-53-espeak-cv-ft` **cannot separate `ɳ` and `n̪`** on Nepali audio, so it cannot independently corroborate or refute `AUDIT-003`'s `90.3%` dental realization rate.
+
+---
+
+## EXP-019: Expanded Code-Mixed Benchmark (`codemix_v1.jsonl`, `n=160`) & Unfolded Code-Mix Latency
+
+- **Date:** 2026-11-28 · **Status:** Completed & Logged
+- **Dataset (`data/evaluation/codemix_v1.jsonl`):** 160 newly authored English-Nepali mixed-script sentences across 6 domains (`office` 20, `everyday` 20, `tech` 30, `finance` 30, `travel` 30, `names_health` 30; word length 6-14, median 10) including numbers, dates, currencies (`रु.`, `$`), percentages, acronyms (`API`, `CPU`, `GPU`, `QR`, `OTP`, `MRI`, `ICU`, `VAT`, `KYC`), and proper names.
+- **Dedup & Frontend Audit (`artifacts/reports/exp019_codemix_v1_audit.json`):**
+  - Checked against all 8 manifests (`237,517` total rows): **0 exact overlaps, 0 normalized overlaps, 0 internal duplicates**.
+  - Frontend segmentation: `400` EN spans, `518` NE spans, `758` language switches (`4.74` switches/sentence), **`0` `<unk>` tokens**, **`0` frontend crashes**.
+  - **Unfixed segmentation edge case (listed plainly):** `158/160` sentences produced both EN and NE spans; `2` finance sentences (`cm_071`: `मेरो बैंक खातामा अहिले रु. 25,000 मात्र बाँकी छ।`, `cm_098`: `हामीले खर्च 25% घटाएर नाफा बढाउने लक्ष्य राखेका छौँ।`) contained only ASCII digits alongside Devanagari, which the Nepali text normalizer expanded into Nepali number words (`en_spans=0, ne_spans=1, switches=0`).
+  - **Human floor:** None exists for `codemix_v1.jsonl`; none is substituted.
+
+### EXP-019 Results: Expanded Code-Mix (`n=160`) Reconciled Micro-WER/CER, Error Breakdown, & XLSR PER (`artifacts/reports/exp019_codemix_asr.json`)
+
+- **Reconciliation & Normalization:** Both headline WER/CER and the S/D/I error breakdown use `pawp_tts.domain.evaluation.metrics.normalize_for_eval` (stripping ASCII punctuation and Devanagari danda `।` uniformly) and **micro averaging** (`sum(S+D+I) / sum(N)` across `N=1,633` reference words). An earlier draft had a regex bug in the breakdown helper that retained `।` (`\u0964`) on sentence-final Nepali words and averaged macro-WER separately; fixing both reconciles `micro_wer == (S+D+I)/1633` exactly.
+- **Switch-boundary analysis (withdrawn):** At `4.74` switches per `10`-word sentence, `76%` of words are adjacent to a switch, confounding boundary-vs-inside comparisons by word composition. The switch-boundary vs inside-span claim is **withdrawn**.
+
+| Checkpoint | Seed | Micro WER [95% CI] | Macro WER | Micro CER [95% CI] | S / D / I (`N=1633`) | EN-Span Err (`n=690`) | NE-Span Err (`n=941`) | XLSR PER |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `PAWP-1.5M v3` | 42 | 18.13% [15.89, 20.58] | 18.03% | 8.80% [7.36, 10.35] | 214 / 52 / 30 | 21.88% (151) | 12.01% (113) | 36.91% |
+| `Shared-300K` | 42 | 19.23% [16.76, 22.00] | 19.11% | 9.01% [7.47, 10.60] | 230 / 48 / 36 | 23.91% (165) | 11.80% (111) | 39.90% |
+| `Shared-300K` | 101 | 19.17% [16.97, 21.35] | 19.11% | 9.97% [8.48, 11.78] | 235 / 48 / 30 | 24.35% (168) | 12.01% (113) | 39.01% |
+| `Shared-300K` | 202 | 17.94% [15.45, 20.52] | 17.79% | 9.07% [7.51, 10.80] | 216 / 47 / 30 | 21.74% (150) | 11.80% (111) | 39.51% |
+| `Dense-300K` | 42 | 21.07% [18.58, 23.50] | 20.87% | 10.24% [8.67, 12.01] | 255 / 61 / 28 | 26.23% (181) | 14.13% (133) | 37.44% |
+| `Dense-300K` | 101 | 17.09% [14.68, 19.46] | 17.02% | 8.29% [6.79, 9.77] | 206 / 42 / 31 | 20.14% (139) | 11.37% (107) | 35.40% |
+| `Dense-300K` | 202 | 18.19% [15.71, 20.58] | 18.19% | 8.46% [7.00, 10.06] | 217 / 51 / 29 | 22.32% (154) | 11.90% (112) | 36.65% |
+
+- **Key Code-Mix Findings (`n=160`):**
+  1. **Shared's apparent `n=9` code-mix advantage disappears at `n=160`:** Across 3 seeds, Shared (`18.78 +/- 0.73%` micro-WER, `9.35 +/- 0.54%` micro-CER) and Dense (`18.78 +/- 2.06%` micro-WER, `9.00 +/- 1.08%` micro-CER) are tied on ASR micro-WER, while Dense wins 3/3 seeds on independent XLSR PER (`36.49%` vs `39.47%`).
+  2. **Error breakdown:** Substitutions dominate (~72% of word errors; deletions ~18%, insertions ~10%). Embedded English/numeric/acronym spans (`20.1% - 26.2%`) have nearly double the word error rate of Nepali carrier spans (`11.4% - 14.1%`).
+- **Reproduction:** `make eval-independent` (EXP-018) and `make eval-codemix` (EXP-019), backed by `experiments/exp018_019/`.
+
+### EXP-019 Results: Unfolded Code-Mix vs Folded Monolingual CPU Streaming Latency (`artifacts/reports/exp019_codemix_latency.json`)
+
+Protocol: 4 CPU threads (`CPUExecutionProvider`), 3 warmups, 30 timed runs on `codemix_v1.jsonl` sentences, x86_64 host.
+
+| Model | Chunk | Graph Mode | FE p50 | TTFA p50 | TTFA p95 | TTFA p99 | RTF | RTFx | Overhead (TTFA / RTF) |
+|---|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| `PAWP-1.5M v3` | 60 ms | Folded (mono) | 0.149 ms | 0.964 ms | 1.023 ms | 1.088 ms | 0.00434 | 230.2x | - |
+| `PAWP-1.5M v3` | 60 ms | Unfolded (code-mix) | 0.153 ms | 1.243 ms | 1.734 ms | 1.801 ms | 0.00551 | 181.4x | +28.9% / +27.0% |
+| `PAWP-1.5M v3` | 30 ms | Folded (mono) | 0.148 ms | 0.923 ms | 1.133 ms | 1.173 ms | 0.00457 | 218.9x | - |
+| `PAWP-1.5M v3` | 30 ms | Unfolded (code-mix) | 0.162 ms | 1.215 ms | 1.566 ms | 1.672 ms | 0.00549 | 182.1x | +31.6% / +20.1% |
+| `Shared-300K` | 60 ms | Folded (mono) | 0.146 ms | 0.702 ms | 0.740 ms | 0.750 ms | 0.00253 | 395.7x | - |
+| `Shared-300K` | 60 ms | Unfolded (code-mix) | 0.151 ms | 0.820 ms | 0.964 ms | 1.071 ms | 0.00314 | 318.9x | +16.8% / +24.1% |
+| `Dense-300K` | 60 ms | Folded (mono) | 0.148 ms | 0.704 ms | 0.765 ms | 0.808 ms | 0.00250 | 400.0x | - |
+| `Dense-300K` | 60 ms | Unfolded (code-mix) | 0.150 ms | 0.837 ms | 0.969 ms | 1.126 ms | 0.00319 | 313.6x | +18.9% / +27.6% |

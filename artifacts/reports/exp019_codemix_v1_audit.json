@@ -1,0 +1,39 @@
+{
+  "output_path": "data/evaluation/codemix_v1.jsonl",
+  "total_sentences": 160,
+  "categories": {
+    "everyday": 20,
+    "finance": 30,
+    "names_health": 30,
+    "office": 20,
+    "tech": 30,
+    "travel": 30
+  },
+  "word_count_min": 6,
+  "word_count_median": 10,
+  "word_count_max": 14,
+  "dedup_checked_manifests": {
+    "codemix_synth.jsonl": 9784,
+    "teacher_sujata.jsonl": 18657,
+    "test.jsonl": 5480,
+    "train.jsonl": 140028,
+    "train_extra.jsonl": 31889,
+    "train_polish.jsonl": 20000,
+    "train_polish_6k.jsonl": 6000,
+    "val.jsonl": 5679
+  },
+  "exact_overlaps_with_manifests": 0,
+  "normalized_overlaps_with_manifests": 0,
+  "internal_duplicates": 0,
+  "frontend_segmentation": {
+    "total_en_spans": 400,
+    "total_ne_spans": 518,
+    "total_switches": 758,
+    "mean_switches_per_sentence": 4.74,
+    "sentences_with_both_en_and_ne_spans": 158,
+    "sentences_with_unk": 0,
+    "unk_details": [],
+    "frontend_failures": 0,
+    "failure_details": []
+  }
+}

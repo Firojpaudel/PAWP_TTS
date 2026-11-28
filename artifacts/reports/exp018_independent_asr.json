@@ -1,0 +1,860 @@
+{
+  "recognizer": "local-mixed-script-asr",
+  "elapsed_sec": 340.7,
+  "human_floor_heldout": {
+    "en": {
+      "n": 30,
+      "wer": {
+        "mean": 0.02496,
+        "ci95_low": 0.00441,
+        "ci95_high": 0.05171
+      },
+      "cer": {
+        "mean": 0.00684,
+        "ci95_low": 0.00064,
+        "ci95_high": 0.0161
+      }
+    },
+    "ne": {
+      "n": 30,
+      "wer": {
+        "mean": 0.28727,
+        "ci95_low": 0.17568,
+        "ci95_high": 0.40394
+      },
+      "cer": {
+        "mean": 0.22645,
+        "ci95_low": 0.11921,
+        "ci95_high": 0.34597
+      }
+    },
+    "mixed": {
+      "n": 9,
+      "wer": {
+        "mean": 0.25915,
+        "ci95_low": 0.17191,
+        "ci95_high": 0.35292
+      },
+      "cer": {
+        "mean": 0.12876,
+        "ci95_low": 0.07108,
+        "ci95_high": 0.19335
+      }
+    }
+  },
+  "checkpoints_heldout": {
+    "pawp_1_5m_v3": {
+      "checkpoint": "artifacts/checkpoints/exp015_1_5m_v3/best.safetensors",
+      "seed": 42,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.05466,
+          "ci95_low": 0.0251,
+          "ci95_high": 0.0922
+        },
+        "cer": {
+          "mean": 0.02348,
+          "ci95_low": 0.0111,
+          "ci95_high": 0.03913
+        },
+        "vs_human_wer": {
+          "mean_a": 0.05466,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.0297,
+          "ci95_low": 0.00088,
+          "ci95_high": 0.06842,
+          "p_value_a_lt_b": 0.98
+        },
+        "vs_human_cer": {
+          "mean_a": 0.02348,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.01664,
+          "ci95_low": 0.00409,
+          "ci95_high": 0.03249,
+          "p_value_a_lt_b": 1.0
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.25581,
+          "ci95_low": 0.16764,
+          "ci95_high": 0.34809
+        },
+        "cer": {
+          "mean": 0.19463,
+          "ci95_low": 0.10568,
+          "ci95_high": 0.2999
+        },
+        "vs_human_wer": {
+          "mean_a": 0.25581,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": -0.03145,
+          "ci95_low": -0.08882,
+          "ci95_high": 0.01807,
+          "p_value_a_lt_b": 0.111
+        },
+        "vs_human_cer": {
+          "mean_a": 0.19463,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": -0.03182,
+          "ci95_low": -0.07692,
+          "ci95_high": 0.00582,
+          "p_value_a_lt_b": 0.054
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.12322,
+          "ci95_low": 0.07068,
+          "ci95_high": 0.16892
+        },
+        "cer": {
+          "mean": 0.05316,
+          "ci95_low": 0.02341,
+          "ci95_high": 0.08407
+        },
+        "vs_human_wer": {
+          "mean_a": 0.12322,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.13592,
+          "ci95_low": -0.20449,
+          "ci95_high": -0.07278,
+          "p_value_a_lt_b": 0.0
+        },
+        "vs_human_cer": {
+          "mean_a": 0.05316,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.0756,
+          "ci95_low": -0.12498,
+          "ci95_high": -0.03149,
+          "p_value_a_lt_b": 0.0
+        }
+      }
+    },
+    "shared_300k_s42": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_shared_v3/best.safetensors",
+      "seed": 42,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.08558,
+          "ci95_low": 0.03363,
+          "ci95_high": 0.16204
+        },
+        "cer": {
+          "mean": 0.04499,
+          "ci95_low": 0.01764,
+          "ci95_high": 0.08554
+        },
+        "vs_human_wer": {
+          "mean_a": 0.08558,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.06061,
+          "ci95_low": 0.01237,
+          "ci95_high": 0.1356,
+          "p_value_a_lt_b": 0.997
+        },
+        "vs_human_cer": {
+          "mean_a": 0.04499,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.03815,
+          "ci95_low": 0.01184,
+          "ci95_high": 0.07829,
+          "p_value_a_lt_b": 1.0
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.31027,
+          "ci95_low": 0.20225,
+          "ci95_high": 0.42521
+        },
+        "cer": {
+          "mean": 0.23133,
+          "ci95_low": 0.12654,
+          "ci95_high": 0.3468
+        },
+        "vs_human_wer": {
+          "mean_a": 0.31027,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": 0.02301,
+          "ci95_low": -0.03686,
+          "ci95_high": 0.08308,
+          "p_value_a_lt_b": 0.756
+        },
+        "vs_human_cer": {
+          "mean_a": 0.23133,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": 0.00487,
+          "ci95_low": -0.05105,
+          "ci95_high": 0.06507,
+          "p_value_a_lt_b": 0.523
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.12017,
+          "ci95_low": 0.04949,
+          "ci95_high": 0.19888
+        },
+        "cer": {
+          "mean": 0.05009,
+          "ci95_low": 0.01327,
+          "ci95_high": 0.09859
+        },
+        "vs_human_wer": {
+          "mean_a": 0.12017,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.13898,
+          "ci95_low": -0.22899,
+          "ci95_high": -0.05637,
+          "p_value_a_lt_b": 0.0
+        },
+        "vs_human_cer": {
+          "mean_a": 0.05009,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.07867,
+          "ci95_low": -0.12398,
+          "ci95_high": -0.03295,
+          "p_value_a_lt_b": 0.0
+        }
+      }
+    },
+    "shared_300k_s101": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_shared_v3_s101/best.safetensors",
+      "seed": 101,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.08636,
+          "ci95_low": 0.03508,
+          "ci95_high": 0.16033
+        },
+        "cer": {
+          "mean": 0.03509,
+          "ci95_low": 0.01722,
+          "ci95_high": 0.05703
+        },
+        "vs_human_wer": {
+          "mean_a": 0.08636,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.06139,
+          "ci95_low": 0.01168,
+          "ci95_high": 0.13643,
+          "p_value_a_lt_b": 1.0
+        },
+        "vs_human_cer": {
+          "mean_a": 0.03509,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.02825,
+          "ci95_low": 0.01039,
+          "ci95_high": 0.05097,
+          "p_value_a_lt_b": 1.0
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.32345,
+          "ci95_low": 0.19786,
+          "ci95_high": 0.45624
+        },
+        "cer": {
+          "mean": 0.193,
+          "ci95_low": 0.10765,
+          "ci95_high": 0.29588
+        },
+        "vs_human_wer": {
+          "mean_a": 0.32345,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": 0.03618,
+          "ci95_low": -0.03872,
+          "ci95_high": 0.11804,
+          "p_value_a_lt_b": 0.813
+        },
+        "vs_human_cer": {
+          "mean_a": 0.193,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": -0.03345,
+          "ci95_low": -0.09866,
+          "ci95_high": 0.01315,
+          "p_value_a_lt_b": 0.113
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.146,
+          "ci95_low": 0.08085,
+          "ci95_high": 0.2076
+        },
+        "cer": {
+          "mean": 0.07785,
+          "ci95_low": 0.02865,
+          "ci95_high": 0.1296
+        },
+        "vs_human_wer": {
+          "mean_a": 0.146,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.11315,
+          "ci95_low": -0.18965,
+          "ci95_high": -0.0361,
+          "p_value_a_lt_b": 0.001
+        },
+        "vs_human_cer": {
+          "mean_a": 0.07785,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.05091,
+          "ci95_low": -0.09693,
+          "ci95_high": -0.00697,
+          "p_value_a_lt_b": 0.008
+        }
+      }
+    },
+    "shared_300k_s202": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_shared_v3_s202/best.safetensors",
+      "seed": 202,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.07188,
+          "ci95_low": 0.02383,
+          "ci95_high": 0.14548
+        },
+        "cer": {
+          "mean": 0.04281,
+          "ci95_low": 0.01105,
+          "ci95_high": 0.09604
+        },
+        "vs_human_wer": {
+          "mean_a": 0.07188,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.04692,
+          "ci95_low": 0.00101,
+          "ci95_high": 0.12141,
+          "p_value_a_lt_b": 0.98
+        },
+        "vs_human_cer": {
+          "mean_a": 0.04281,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.03597,
+          "ci95_low": 0.00476,
+          "ci95_high": 0.08931,
+          "p_value_a_lt_b": 0.998
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.29856,
+          "ci95_low": 0.19125,
+          "ci95_high": 0.41416
+        },
+        "cer": {
+          "mean": 0.20761,
+          "ci95_low": 0.11301,
+          "ci95_high": 0.31551
+        },
+        "vs_human_wer": {
+          "mean_a": 0.29856,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": 0.0113,
+          "ci95_low": -0.03706,
+          "ci95_high": 0.05486,
+          "p_value_a_lt_b": 0.696
+        },
+        "vs_human_cer": {
+          "mean_a": 0.20761,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": -0.01884,
+          "ci95_low": -0.05872,
+          "ci95_high": 0.01422,
+          "p_value_a_lt_b": 0.149
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.16486,
+          "ci95_low": 0.0917,
+          "ci95_high": 0.2489
+        },
+        "cer": {
+          "mean": 0.09324,
+          "ci95_low": 0.0351,
+          "ci95_high": 0.16304
+        },
+        "vs_human_wer": {
+          "mean_a": 0.16486,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.09429,
+          "ci95_low": -0.17983,
+          "ci95_high": -0.01163,
+          "p_value_a_lt_b": 0.008
+        },
+        "vs_human_cer": {
+          "mean_a": 0.09324,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.03552,
+          "ci95_low": -0.1077,
+          "ci95_high": 0.0415,
+          "p_value_a_lt_b": 0.187
+        }
+      }
+    },
+    "dense_300k_s42": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_dense_v3/best.safetensors",
+      "seed": 42,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.06421,
+          "ci95_low": 0.03717,
+          "ci95_high": 0.0955
+        },
+        "cer": {
+          "mean": 0.03774,
+          "ci95_low": 0.01921,
+          "ci95_high": 0.05906
+        },
+        "vs_human_wer": {
+          "mean_a": 0.06421,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.03924,
+          "ci95_low": 0.01204,
+          "ci95_high": 0.06754,
+          "p_value_a_lt_b": 0.999
+        },
+        "vs_human_cer": {
+          "mean_a": 0.03774,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.0309,
+          "ci95_low": 0.01328,
+          "ci95_high": 0.05433,
+          "p_value_a_lt_b": 1.0
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.34098,
+          "ci95_low": 0.19987,
+          "ci95_high": 0.48661
+        },
+        "cer": {
+          "mean": 0.19877,
+          "ci95_low": 0.10889,
+          "ci95_high": 0.29721
+        },
+        "vs_human_wer": {
+          "mean_a": 0.34098,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": 0.05371,
+          "ci95_low": -0.01013,
+          "ci95_high": 0.12307,
+          "p_value_a_lt_b": 0.945
+        },
+        "vs_human_cer": {
+          "mean_a": 0.19877,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": -0.02768,
+          "ci95_low": -0.09213,
+          "ci95_high": 0.03502,
+          "p_value_a_lt_b": 0.201
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.18091,
+          "ci95_low": 0.07191,
+          "ci95_high": 0.29683
+        },
+        "cer": {
+          "mean": 0.09005,
+          "ci95_low": 0.03642,
+          "ci95_high": 0.14285
+        },
+        "vs_human_wer": {
+          "mean_a": 0.18091,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.07824,
+          "ci95_low": -0.20271,
+          "ci95_high": 0.02548,
+          "p_value_a_lt_b": 0.08
+        },
+        "vs_human_cer": {
+          "mean_a": 0.09005,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.03871,
+          "ci95_low": -0.10901,
+          "ci95_high": 0.03788,
+          "p_value_a_lt_b": 0.14
+        }
+      }
+    },
+    "dense_300k_s101": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_dense_v3_s101/best.safetensors",
+      "seed": 101,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.03595,
+          "ci95_low": 0.01455,
+          "ci95_high": 0.06064
+        },
+        "cer": {
+          "mean": 0.01453,
+          "ci95_low": 0.00587,
+          "ci95_high": 0.02442
+        },
+        "vs_human_wer": {
+          "mean_a": 0.03595,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.01098,
+          "ci95_low": -0.00798,
+          "ci95_high": 0.03276,
+          "p_value_a_lt_b": 0.864
+        },
+        "vs_human_cer": {
+          "mean_a": 0.01453,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.00769,
+          "ci95_low": -0.00036,
+          "ci95_high": 0.01684,
+          "p_value_a_lt_b": 0.965
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.28941,
+          "ci95_low": 0.17325,
+          "ci95_high": 0.40765
+        },
+        "cer": {
+          "mean": 0.19605,
+          "ci95_low": 0.1008,
+          "ci95_high": 0.30427
+        },
+        "vs_human_wer": {
+          "mean_a": 0.28941,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": 0.00215,
+          "ci95_low": -0.05324,
+          "ci95_high": 0.05568,
+          "p_value_a_lt_b": 0.508
+        },
+        "vs_human_cer": {
+          "mean_a": 0.19605,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": -0.0304,
+          "ci95_low": -0.06286,
+          "ci95_high": -0.00227,
+          "p_value_a_lt_b": 0.014
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.11486,
+          "ci95_low": 0.06065,
+          "ci95_high": 0.18071
+        },
+        "cer": {
+          "mean": 0.05665,
+          "ci95_low": 0.01578,
+          "ci95_high": 0.10781
+        },
+        "vs_human_wer": {
+          "mean_a": 0.11486,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.14429,
+          "ci95_low": -0.20935,
+          "ci95_high": -0.08009,
+          "p_value_a_lt_b": 0.0
+        },
+        "vs_human_cer": {
+          "mean_a": 0.05665,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.0721,
+          "ci95_low": -0.11702,
+          "ci95_high": -0.02659,
+          "p_value_a_lt_b": 0.001
+        }
+      }
+    },
+    "dense_300k_s202": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_dense_v3_s202/best.safetensors",
+      "seed": 202,
+      "en": {
+        "n": 30,
+        "wer": {
+          "mean": 0.05647,
+          "ci95_low": 0.02514,
+          "ci95_high": 0.0945
+        },
+        "cer": {
+          "mean": 0.02089,
+          "ci95_low": 0.00932,
+          "ci95_high": 0.03436
+        },
+        "vs_human_wer": {
+          "mean_a": 0.05647,
+          "mean_b": 0.02496,
+          "mean_diff_a_minus_b": 0.03151,
+          "ci95_low": 0.01091,
+          "ci95_high": 0.05501,
+          "p_value_a_lt_b": 1.0
+        },
+        "vs_human_cer": {
+          "mean_a": 0.02089,
+          "mean_b": 0.00684,
+          "mean_diff_a_minus_b": 0.01405,
+          "ci95_low": 0.00452,
+          "ci95_high": 0.02527,
+          "p_value_a_lt_b": 1.0
+        }
+      },
+      "ne": {
+        "n": 30,
+        "wer": {
+          "mean": 0.29704,
+          "ci95_low": 0.20031,
+          "ci95_high": 0.40019
+        },
+        "cer": {
+          "mean": 0.21068,
+          "ci95_low": 0.11578,
+          "ci95_high": 0.31821
+        },
+        "vs_human_wer": {
+          "mean_a": 0.29704,
+          "mean_b": 0.28727,
+          "mean_diff_a_minus_b": 0.00977,
+          "ci95_low": -0.03452,
+          "ci95_high": 0.05027,
+          "p_value_a_lt_b": 0.687
+        },
+        "vs_human_cer": {
+          "mean_a": 0.21068,
+          "mean_b": 0.22645,
+          "mean_diff_a_minus_b": -0.01577,
+          "ci95_low": -0.05614,
+          "ci95_high": 0.01674,
+          "p_value_a_lt_b": 0.206
+        }
+      },
+      "mixed": {
+        "n": 9,
+        "wer": {
+          "mean": 0.15205,
+          "ci95_low": 0.07799,
+          "ci95_high": 0.2228
+        },
+        "cer": {
+          "mean": 0.08404,
+          "ci95_low": 0.03591,
+          "ci95_high": 0.13591
+        },
+        "vs_human_wer": {
+          "mean_a": 0.15205,
+          "mean_b": 0.25915,
+          "mean_diff_a_minus_b": -0.1071,
+          "ci95_low": -0.16494,
+          "ci95_high": -0.05109,
+          "p_value_a_lt_b": 0.0
+        },
+        "vs_human_cer": {
+          "mean_a": 0.08404,
+          "mean_b": 0.12876,
+          "mean_diff_a_minus_b": -0.04472,
+          "ci95_low": -0.08956,
+          "ci95_high": -0.00519,
+          "p_value_a_lt_b": 0.009
+        }
+      }
+    }
+  },
+  "shared_vs_dense_heldout": {
+    "en": {
+      "shared_wer_mean_std": [
+        0.08127,
+        0.00814
+      ],
+      "dense_wer_mean_std": [
+        0.05221,
+        0.0146
+      ],
+      "shared_cer_mean_std": [
+        0.04096,
+        0.0052
+      ],
+      "dense_cer_mean_std": [
+        0.02439,
+        0.01199
+      ],
+      "per_seed_diff_shared_minus_dense_cer": [
+        {
+          "seed": 42,
+          "diff": 0.00725
+        },
+        {
+          "seed": 101,
+          "diff": 0.02056
+        },
+        {
+          "seed": 202,
+          "diff": 0.02192
+        }
+      ],
+      "seed42_within_seed_paired_bootstrap_wer": {
+        "mean_a": 0.08558,
+        "mean_b": 0.06421,
+        "mean_diff_a_minus_b": 0.02137,
+        "ci95_low": -0.02625,
+        "ci95_high": 0.0799,
+        "p_value_a_lt_b": 0.739
+      },
+      "seed42_within_seed_paired_bootstrap_cer": {
+        "mean_a": 0.04499,
+        "mean_b": 0.03774,
+        "mean_diff_a_minus_b": 0.00725,
+        "ci95_low": -0.01336,
+        "ci95_high": 0.02977,
+        "p_value_a_lt_b": 0.711
+      }
+    },
+    "ne": {
+      "shared_wer_mean_std": [
+        0.31076,
+        0.01245
+      ],
+      "dense_wer_mean_std": [
+        0.30914,
+        0.02783
+      ],
+      "shared_cer_mean_std": [
+        0.21065,
+        0.01934
+      ],
+      "dense_cer_mean_std": [
+        0.20183,
+        0.00778
+      ],
+      "per_seed_diff_shared_minus_dense_cer": [
+        {
+          "seed": 42,
+          "diff": 0.03256
+        },
+        {
+          "seed": 101,
+          "diff": -0.00305
+        },
+        {
+          "seed": 202,
+          "diff": -0.00307
+        }
+      ],
+      "seed42_within_seed_paired_bootstrap_wer": {
+        "mean_a": 0.31027,
+        "mean_b": 0.34098,
+        "mean_diff_a_minus_b": -0.0307,
+        "ci95_low": -0.09674,
+        "ci95_high": 0.02431,
+        "p_value_a_lt_b": 0.178
+      },
+      "seed42_within_seed_paired_bootstrap_cer": {
+        "mean_a": 0.23133,
+        "mean_b": 0.19877,
+        "mean_diff_a_minus_b": 0.03255,
+        "ci95_low": 0.00266,
+        "ci95_high": 0.0733,
+        "p_value_a_lt_b": 0.986
+      }
+    },
+    "mixed": {
+      "shared_wer_mean_std": [
+        0.14368,
+        0.02244
+      ],
+      "dense_wer_mean_std": [
+        0.14927,
+        0.03311
+      ],
+      "shared_cer_mean_std": [
+        0.07373,
+        0.02187
+      ],
+      "dense_cer_mean_std": [
+        0.07691,
+        0.0178
+      ],
+      "per_seed_diff_shared_minus_dense_cer": [
+        {
+          "seed": 42,
+          "diff": -0.03996
+        },
+        {
+          "seed": 101,
+          "diff": 0.0212
+        },
+        {
+          "seed": 202,
+          "diff": 0.0092
+        }
+      ],
+      "seed42_within_seed_paired_bootstrap_wer": {
+        "mean_a": 0.12017,
+        "mean_b": 0.18091,
+        "mean_diff_a_minus_b": -0.06074,
+        "ci95_low": -0.17538,
+        "ci95_high": 0.03925,
+        "p_value_a_lt_b": 0.158
+      },
+      "seed42_within_seed_paired_bootstrap_cer": {
+        "mean_a": 0.05009,
+        "mean_b": 0.09005,
+        "mean_diff_a_minus_b": -0.03997,
+        "ci95_low": -0.10603,
+        "ci95_high": 0.01758,
+        "p_value_a_lt_b": 0.093
+      }
+    },
+    "pooled_3seeds_x_2langs_en_ne": {
+      "diffs_shared_minus_dense_cer": [
+        0.00725,
+        0.02056,
+        0.02192,
+        0.03256,
+        -0.00305,
+        -0.00307
+      ],
+      "diffs_shared_minus_dense_wer": [
+        0.02137,
+        0.05041,
+        0.01541,
+        -0.03071,
+        0.03404,
+        0.00152
+      ],
+      "paired_ttest_cer": {
+        "t": 2.128,
+        "p": 0.08662
+      },
+      "paired_ttest_wer": {
+        "t": 1.3407,
+        "p": 0.23771
+      },
+      "wilcoxon_cer": {
+        "stat": 3.0,
+        "p": 0.15625
+      }
+    }
+  }
+}

@@ -1,0 +1,875 @@
+{
+  "recognizer": "facebook/wav2vec2-xlsr-53-espeak-cv-ft",
+  "elapsed_sec": 104.3,
+  "reduced_phone_mapping": {
+    "p": [
+      "p"
+    ],
+    "pʰ": [
+      "p"
+    ],
+    "ph": [
+      "p"
+    ],
+    "b": [
+      "b"
+    ],
+    "bʱ": [
+      "b"
+    ],
+    "bh": [
+      "b"
+    ],
+    "t": [
+      "t"
+    ],
+    "t̪": [
+      "t"
+    ],
+    "t̪ʰ": [
+      "t"
+    ],
+    "ʈ": [
+      "t"
+    ],
+    "ʈʰ": [
+      "t"
+    ],
+    "th": [
+      "t"
+    ],
+    "tʲ": [
+      "t"
+    ],
+    "d": [
+      "d"
+    ],
+    "d̪": [
+      "d"
+    ],
+    "d̪ʱ": [
+      "d"
+    ],
+    "ɖ": [
+      "d"
+    ],
+    "ɖʱ": [
+      "d"
+    ],
+    "dh": [
+      "d"
+    ],
+    "dʲ": [
+      "d"
+    ],
+    "k": [
+      "k"
+    ],
+    "kʰ": [
+      "k"
+    ],
+    "kh": [
+      "k"
+    ],
+    "q": [
+      "k"
+    ],
+    "c": [
+      "k"
+    ],
+    "ɡ": [
+      "g"
+    ],
+    "g": [
+      "g"
+    ],
+    "ɡʱ": [
+      "g"
+    ],
+    "gh": [
+      "g"
+    ],
+    "ɟ": [
+      "g"
+    ],
+    "tʃ": [
+      "tʃ"
+    ],
+    "tS": [
+      "tʃ"
+    ],
+    "tɕ": [
+      "tʃ"
+    ],
+    "tɕh": [
+      "tʃ"
+    ],
+    "tʃʲ": [
+      "tʃ"
+    ],
+    "dʒ": [
+      "dʒ"
+    ],
+    "dZ": [
+      "dʒ"
+    ],
+    "dʑ": [
+      "dʒ"
+    ],
+    "ts": [
+      "ts"
+    ],
+    "tsʰ": [
+      "ts"
+    ],
+    "tsh": [
+      "ts"
+    ],
+    "dz": [
+      "dz"
+    ],
+    "dzʱ": [
+      "dz"
+    ],
+    "dzh": [
+      "dz"
+    ],
+    "f": [
+      "f"
+    ],
+    "v": [
+      "v"
+    ],
+    "ʋ": [
+      "v"
+    ],
+    "θ": [
+      "θ"
+    ],
+    "ð": [
+      "ð"
+    ],
+    "s": [
+      "s"
+    ],
+    "z": [
+      "z"
+    ],
+    "ʃ": [
+      "ʃ"
+    ],
+    "ʂ": [
+      "ʃ"
+    ],
+    "ɕ": [
+      "ʃ"
+    ],
+    "S": [
+      "ʃ"
+    ],
+    "ʒ": [
+      "ʒ"
+    ],
+    "ʐ": [
+      "ʒ"
+    ],
+    "ʑ": [
+      "ʒ"
+    ],
+    "Z": [
+      "ʒ"
+    ],
+    "h": [
+      "h"
+    ],
+    "ɦ": [
+      "h"
+    ],
+    "x": [
+      "h"
+    ],
+    "χ": [
+      "h"
+    ],
+    "ħ": [
+      "h"
+    ],
+    "m": [
+      "m"
+    ],
+    "mʲ": [
+      "m"
+    ],
+    "n": [
+      "n"
+    ],
+    "n̪": [
+      "n"
+    ],
+    "ɳ": [
+      "n"
+    ],
+    "ɲ": [
+      "n"
+    ],
+    "nʲ": [
+      "n"
+    ],
+    "ŋ": [
+      "ŋ"
+    ],
+    "l": [
+      "l"
+    ],
+    "ɭ": [
+      "l"
+    ],
+    "ʎ": [
+      "l"
+    ],
+    "ɫ": [
+      "l"
+    ],
+    "r": [
+      "r"
+    ],
+    "ɾ": [
+      "r"
+    ],
+    "ɹ": [
+      "r"
+    ],
+    "ɽ": [
+      "r"
+    ],
+    "ɽʱ": [
+      "r"
+    ],
+    "ʁ": [
+      "r"
+    ],
+    "ʀ": [
+      "r"
+    ],
+    "ɻ": [
+      "r"
+    ],
+    "w": [
+      "w"
+    ],
+    "j": [
+      "j"
+    ],
+    "i": [
+      "i"
+    ],
+    "y": [
+      "i"
+    ],
+    "ɪ": [
+      "ɪ"
+    ],
+    "ɨ": [
+      "ɪ"
+    ],
+    "ᵻ": [
+      "ɪ"
+    ],
+    "e": [
+      "e"
+    ],
+    "ø": [
+      "e"
+    ],
+    "ɛ": [
+      "ɛ"
+    ],
+    "œ": [
+      "ɛ"
+    ],
+    "æ": [
+      "æ"
+    ],
+    "a": [
+      "a"
+    ],
+    "ɑ": [
+      "a"
+    ],
+    "ɐ": [
+      "a"
+    ],
+    "ɒ": [
+      "a"
+    ],
+    "ʌ": [
+      "ʌ"
+    ],
+    "ɜ": [
+      "ɜ"
+    ],
+    "ə": [
+      "ə"
+    ],
+    "ɚ": [
+      "ə",
+      "r"
+    ],
+    "ɝ": [
+      "ɜ",
+      "r"
+    ],
+    "ɔ": [
+      "ɔ"
+    ],
+    "o": [
+      "o"
+    ],
+    "ɤ": [
+      "o"
+    ],
+    "ʊ": [
+      "ʊ"
+    ],
+    "u": [
+      "u"
+    ],
+    "ɯ": [
+      "u"
+    ],
+    "aɪ": [
+      "a",
+      "i"
+    ],
+    "aʊ": [
+      "a",
+      "u"
+    ],
+    "eɪ": [
+      "e",
+      "i"
+    ],
+    "oʊ": [
+      "o",
+      "u"
+    ],
+    "ɔɪ": [
+      "ɔ",
+      "i"
+    ],
+    "ɪə": [
+      "ɪ",
+      "ə"
+    ],
+    "eə": [
+      "ɛ",
+      "ə"
+    ],
+    "ʊə": [
+      "ʊ",
+      "ə"
+    ],
+    "ʌɪ": [
+      "ʌ",
+      "i"
+    ],
+    "ʌʊ": [
+      "ʌ",
+      "u"
+    ],
+    "əʊ": [
+      "ə",
+      "u"
+    ],
+    "aɪə": [
+      "a",
+      "i",
+      "ə"
+    ],
+    "aʊə": [
+      "a",
+      "u",
+      "ə"
+    ]
+  },
+  "human_floor": {
+    "en": {
+      "n_loaded": 300,
+      "per": 0.13439,
+      "ci95_low": 0.12842,
+      "ci95_high": 0.14014,
+      "S": 1883,
+      "D": 779,
+      "I": 411,
+      "N": 22867
+    },
+    "ne": {
+      "n_loaded": 300,
+      "per": 0.34119,
+      "ci95_low": 0.33347,
+      "ci95_high": 0.34937,
+      "S": 4314,
+      "D": 1012,
+      "I": 525,
+      "N": 17149
+    }
+  },
+  "retroflex_nasal_recheck": {
+    "ne_human_audio_loaded": 300,
+    "utts_with_retroflex_nasal": 51,
+    "human_occ_orthographic_na": 61,
+    "aligned_frontend_retroflex_total": 61,
+    "decoded_as_retroflex_ɳ": 0,
+    "decoded_as_dental_n": 51,
+    "decoded_as_other_or_deleted": 10,
+    "raw_ɳ_emitted_in_retro_utts": 0,
+    "raw_n_emitted_in_retro_utts": 263,
+    "raw_ɳ_emitted_across_all_loaded_ne_human": 0,
+    "raw_n_emitted_across_all_loaded_ne_human": 1032,
+    "can_separate_ɳ_and_n": false
+  },
+  "checkpoints": {
+    "pawp_1_5m_v3": {
+      "checkpoint": "artifacts/checkpoints/exp015_1_5m_v3/best.safetensors",
+      "seed": 42,
+      "en_300": {
+        "per": 0.1514,
+        "ci95_low": 0.14555,
+        "ci95_high": 0.15741,
+        "S": 2070,
+        "D": 1040,
+        "I": 352,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.38096,
+        "ci95_low": 0.37249,
+        "ci95_high": 0.38965,
+        "S": 5042,
+        "D": 948,
+        "I": 543,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.36905,
+        "ci95_low": 0.35698,
+        "ci95_high": 0.37996,
+        "S": 2365,
+        "D": 560,
+        "I": 209,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.1514,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.01701,
+        "ci95_low": 0.01175,
+        "ci95_high": 0.02291,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.38096,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.03977,
+        "ci95_low": 0.03234,
+        "ci95_high": 0.04678,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "shared_300k_s42": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_shared_v3/best.safetensors",
+      "seed": 42,
+      "en_300": {
+        "per": 0.17506,
+        "ci95_low": 0.16823,
+        "ci95_high": 0.18204,
+        "S": 2524,
+        "D": 1152,
+        "I": 327,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.40055,
+        "ci95_low": 0.39212,
+        "ci95_high": 0.4089,
+        "S": 5453,
+        "D": 789,
+        "I": 627,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.39896,
+        "ci95_low": 0.38746,
+        "ci95_high": 0.41157,
+        "S": 2594,
+        "D": 502,
+        "I": 292,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.17506,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.04067,
+        "ci95_low": 0.03377,
+        "ci95_high": 0.04825,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.40055,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.05936,
+        "ci95_low": 0.05181,
+        "ci95_high": 0.06755,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "shared_300k_s101": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_shared_v3_s101/best.safetensors",
+      "seed": 101,
+      "en_300": {
+        "per": 0.15258,
+        "ci95_low": 0.1467,
+        "ci95_high": 0.15887,
+        "S": 2078,
+        "D": 1102,
+        "I": 309,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.40871,
+        "ci95_low": 0.40032,
+        "ci95_high": 0.41631,
+        "S": 5555,
+        "D": 958,
+        "I": 496,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.39013,
+        "ci95_low": 0.37826,
+        "ci95_high": 0.40217,
+        "S": 2532,
+        "D": 588,
+        "I": 193,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.15258,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.01819,
+        "ci95_low": 0.01253,
+        "ci95_high": 0.02444,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.40871,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.06753,
+        "ci95_low": 0.05982,
+        "ci95_high": 0.07536,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "shared_300k_s202": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_shared_v3_s202/best.safetensors",
+      "seed": 202,
+      "en_300": {
+        "per": 0.16089,
+        "ci95_low": 0.15462,
+        "ci95_high": 0.16791,
+        "S": 2261,
+        "D": 1097,
+        "I": 321,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.40597,
+        "ci95_low": 0.39818,
+        "ci95_high": 0.41324,
+        "S": 5485,
+        "D": 1000,
+        "I": 477,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.39508,
+        "ci95_low": 0.38321,
+        "ci95_high": 0.40657,
+        "S": 2579,
+        "D": 578,
+        "I": 198,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.16089,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.0265,
+        "ci95_low": 0.02019,
+        "ci95_high": 0.0335,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.40597,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.06479,
+        "ci95_low": 0.05673,
+        "ci95_high": 0.07238,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "dense_300k_s42": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_dense_v3/best.safetensors",
+      "seed": 42,
+      "en_300": {
+        "per": 0.14995,
+        "ci95_low": 0.14425,
+        "ci95_high": 0.15586,
+        "S": 1972,
+        "D": 1151,
+        "I": 306,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.39402,
+        "ci95_low": 0.38617,
+        "ci95_high": 0.40218,
+        "S": 5306,
+        "D": 959,
+        "I": 492,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.37435,
+        "ci95_low": 0.36278,
+        "ci95_high": 0.38625,
+        "S": 2431,
+        "D": 549,
+        "I": 199,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.14995,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.01557,
+        "ci95_low": 0.01004,
+        "ci95_high": 0.02131,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.39402,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.05283,
+        "ci95_low": 0.04577,
+        "ci95_high": 0.06061,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "dense_300k_s101": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_dense_v3_s101/best.safetensors",
+      "seed": 101,
+      "en_300": {
+        "per": 0.15035,
+        "ci95_low": 0.14483,
+        "ci95_high": 0.15591,
+        "S": 2050,
+        "D": 1091,
+        "I": 297,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.38416,
+        "ci95_low": 0.37658,
+        "ci95_high": 0.39234,
+        "S": 5266,
+        "D": 828,
+        "I": 494,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.35398,
+        "ci95_low": 0.34313,
+        "ci95_high": 0.36459,
+        "S": 2274,
+        "D": 539,
+        "I": 193,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.15035,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.01596,
+        "ci95_low": 0.01053,
+        "ci95_high": 0.02171,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.38416,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.04298,
+        "ci95_low": 0.03606,
+        "ci95_high": 0.04983,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "dense_300k_s202": {
+      "checkpoint": "artifacts/checkpoints/exp015_300k_dense_v3_s202/best.safetensors",
+      "seed": 202,
+      "en_300": {
+        "per": 0.14466,
+        "ci95_low": 0.13884,
+        "ci95_high": 0.15056,
+        "S": 1947,
+        "D": 1056,
+        "I": 305,
+        "N": 22867
+      },
+      "ne_300": {
+        "per": 0.38265,
+        "ci95_low": 0.37527,
+        "ci95_high": 0.39054,
+        "S": 5143,
+        "D": 959,
+        "I": 460,
+        "N": 17149
+      },
+      "codemix_v1_160": {
+        "per": 0.36646,
+        "ci95_low": 0.35497,
+        "ci95_high": 0.37821,
+        "S": 2334,
+        "D": 587,
+        "I": 191,
+        "N": 8492
+      },
+      "en_vs_human": {
+        "per_a": 0.14466,
+        "per_b": 0.13439,
+        "diff_a_minus_b": 0.01028,
+        "ci95_low": 0.00457,
+        "ci95_high": 0.01588,
+        "p_value_b_lt_a": 0.0
+      },
+      "ne_vs_human": {
+        "per_a": 0.38265,
+        "per_b": 0.34119,
+        "diff_a_minus_b": 0.04146,
+        "ci95_low": 0.03432,
+        "ci95_high": 0.04898,
+        "p_value_b_lt_a": 0.0
+      }
+    }
+  },
+  "shared_vs_dense": {
+    "en_300": {
+      "shared_per_seeds": [
+        0.17506,
+        0.15258,
+        0.16089
+      ],
+      "dense_per_seeds": [
+        0.14995,
+        0.15035,
+        0.14466
+      ],
+      "shared_mean_std": [
+        0.16284,
+        0.01137
+      ],
+      "dense_mean_std": [
+        0.14832,
+        0.00318
+      ],
+      "per_seed_diff_shared_minus_dense": [
+        0.02511,
+        0.00223,
+        0.01623
+      ],
+      "paired_ttest_3seeds": {
+        "t": 2.1808,
+        "p": 0.16098
+      },
+      "seed42_within_seed_paired_bootstrap": {
+        "per_a": 0.17506,
+        "per_b": 0.14995,
+        "diff_a_minus_b": 0.0251,
+        "ci95_low": 0.0197,
+        "ci95_high": 0.03101,
+        "p_value_b_lt_a": 0.0
+      }
+    },
+    "ne_300": {
+      "shared_per_seeds": [
+        0.40055,
+        0.40871,
+        0.40597
+      ],
+      "dense_per_seeds": [
+        0.39402,
+        0.38416,
+        0.38265
+      ],
+      "shared_mean_std": [
+        0.40508,
+        0.00415
+      ],
+      "dense_mean_std": [
+        0.38694,
+        0.00617
+      ],
+      "per_seed_diff_shared_minus_dense": [
+        0.00653,
+        0.02455,
+        0.02332
+      ],
+      "paired_ttest_3seeds": {
+        "t": 3.1197,
+        "p": 0.08921
+      },
+      "seed42_within_seed_paired_bootstrap": {
+        "per_a": 0.40055,
+        "per_b": 0.39402,
+        "diff_a_minus_b": 0.00653,
+        "ci95_low": -0.00042,
+        "ci95_high": 0.01384,
+        "p_value_b_lt_a": 0.043
+      }
+    },
+    "pooled_3seeds_x_2langs": {
+      "diffs_shared_minus_dense": [
+        0.02511,
+        0.00223,
+        0.01623,
+        0.00653,
+        0.02455,
+        0.02332
+      ],
+      "dense_better_count": 6,
+      "paired_ttest_n6": {
+        "t": 4.0469,
+        "p": 0.00986
+      },
+      "wilcoxon_n6": {
+        "stat": 0.0,
+        "p": 0.03125
+      }
+    },
+    "codemix_v1_160": {
+      "shared_mean_std": [
+        0.39472,
+        0.00443
+      ],
+      "dense_mean_std": [
+        0.36493,
+        0.01027
+      ],
+      "seed42_within_seed_paired_bootstrap": {
+        "per_a": 0.39896,
+        "per_b": 0.37435,
+        "diff_a_minus_b": 0.02461,
+        "ci95_low": 0.01348,
+        "ci95_high": 0.03618,
+        "p_value_b_lt_a": 0.0
+      }
+    }
+  }
+}
